@@ -142,7 +142,7 @@ watch(filterSubtest, () => {
                 Soal {{ index + 1 }} dari {{ questions.length }} · {{ current.subtest }}
                 <span v-if="current.topic"> · {{ current.topic }}</span>
             </p>
-            <h2 class="mt-2 text-lg font-semibold leading-relaxed">{{ current.body }}</h2>
+            <div class="rich-text mt-2 text-lg font-semibold leading-relaxed" v-html="current.body"></div>
             <img v-if="current.image_path" :src="current.image_path" alt="Gambar soal" class="mt-4 max-h-72 rounded-xl border border-line">
 
             <ul class="mt-6 space-y-3" role="radiogroup" :aria-label="`Pilihan jawaban soal ${index + 1}`">
@@ -163,7 +163,7 @@ watch(filterSubtest, () => {
 
             <div v-if="result" role="status" class="mt-5 rounded-xl p-4 text-sm" :class="result.is_correct ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'">
                 <p class="font-bold">{{ result.is_correct ? 'Benar' : 'Belum tepat' }}</p>
-                <p v-if="result.explanation" class="mt-1 text-ink-600">{{ result.explanation }}</p>
+                <div v-if="result.explanation" class="rich-text mt-1 text-ink-600" v-html="result.explanation"></div>
             </div>
 
             <div class="mt-6 flex gap-3">

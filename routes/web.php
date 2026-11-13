@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\SubtestController;
 use App\Http\Controllers\Admin\TryoutController as AdminTryoutController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -41,10 +42,21 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
-    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('verify-email', [EmailVerificationController::class, 'notice'])->name('verification.notice');
+    Route::get('verify-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verification.verify');
+    Route::post('email/verification-notification', [EmailVerificationController::class, 'send'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
+
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('history', [HistoryController::class, 'index'])->name('history.index');
     Route::get('progress', [ProgressController::class, 'index'])->name('progress.index');
     Route::get('practice', [PracticeController::class, 'index'])->name('practice.index');
@@ -60,7 +72,7 @@ Route::middleware('auth')->group(function () {
     Route::get('attempts/{attempt}/result', [ResultController::class, 'show'])->name('results.show');
 });
 
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
 
     Route::get('questions', [QuestionController::class, 'index'])->name('questions.index');
@@ -70,6 +82,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('questions/import', [QuestionController::class, 'importForm'])->name('questions.import');
     Route::post('questions/import', [QuestionController::class, 'import'])->name('questions.import.store');
     Route::get('questions/{question}/edit', [QuestionController::class, 'edit'])->name('questions.edit');
+    Route::post('questions/{question}/image', [QuestionController::class, 'uploadImage'])->name('questions.image');
     Route::post('questions/{question}/revise', [QuestionController::class, 'revise'])->name('questions.revise');
 
     Route::get('subtests', [SubtestController::class, 'index'])->name('subtests.index');

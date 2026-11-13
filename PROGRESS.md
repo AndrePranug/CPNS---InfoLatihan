@@ -2,7 +2,7 @@
 
 Status proyek **Latihan CPNS — Simulasi SKD**. Dokumen ini sumber kebenaran progres: apa yang sudah jadi, apa yang belum, dan langkah berikutnya.
 
-Terakhir diperbarui: **9 November 2026**
+Terakhir diperbarui: **13 November 2026**
 
 ---
 
@@ -10,7 +10,7 @@ Terakhir diperbarui: **9 November 2026**
 
 - Stack: **Laravel 13.40 · Inertia 3.7 · Vue 3 · Tailwind v4 · Vite 8 · MySQL 8.3**
 - Database: `cpns` (dev) dan `cpns_testing` (test), user `root` tanpa password (Laragon)
-- Test: **58 test, 296 assertion — semua lulus** di MySQL
+- Test: **77 test, 362 assertion — semua lulus** di MySQL
 - Sumber spesifikasi: `PRD Web Latihan CPNS.md` dan `design (3).md`
 
 ---
@@ -47,7 +47,7 @@ Catatan lingkungan:
 
 | Kode | Kebutuhan | Prioritas | Status |
 | --- | --- | --- | --- |
-| FR-01 | Registrasi & login email + sandi, **verifikasi email** | P0 | Sebagian — registrasi/login ada, verifikasi email belum |
+| FR-01 | Registrasi & login email + sandi, verifikasi email | P0 | **Selesai** |
 | FR-02 | Login Google (Socialite) | P1 | **Selesai** |
 | FR-03 | Reset sandi & edit profil | P0 | **Selesai** |
 | FR-04 | Peran peserta dan admin | P0 | **Selesai** |
@@ -62,8 +62,8 @@ Catatan lingkungan:
 | FR-18 | Peringkat per paket tryout | P1 | **Selesai** |
 | FR-19 | Latihan per subtes/topik tanpa timer ketat | P2 | **Selesai** |
 | FR-30 | CRUD bank soal lengkap | P0 | **Selesai** |
-| FR-31 | Editor teks kaya (gambar, rumus) | P1 | Sebagian — gambar via `image_path`, editor kaya belum |
-| FR-32 | Impor soal CSV/Excel + validasi per baris | P1 | **Selesai** (CSV) |
+| FR-31 | Editor teks kaya (gambar, rumus) | P1 | **Selesai** — Quill (bold/miring/garis bawah/sup/sub/daftar) + sanitasi server; gambar via unggahan terpisah |
+| FR-32 | Impor soal CSV/Excel + validasi per baris | P1 | **Selesai** — CSV & `.xlsx`/`.xls` |
 | FR-33 | CRUD paket: pilih soal, durasi, PG, jadwal, harga | P0 | **Selesai** |
 | FR-34 | Manajemen pengguna | P0 | **Selesai** |
 | FR-35 | Dasbor statistik admin | P1 | **Selesai** |
@@ -87,9 +87,10 @@ Aturan bisnis PRD yang sudah diterapkan:
 ### Autentikasi
 - `Auth/AuthenticatedSessionController` — login, tolak user nonaktif.
 - `Auth/RegisteredUserController` — registrasi.
+- `Auth/EmailVerificationController` — verifikasi email (notice, tautan bertanda tangan, kirim ulang).
 - `Auth/GoogleController` — OAuth + linking akun via `google_id`.
 - `Auth/PasswordResetLinkController`, `Auth/NewPasswordController` — lupa/reset sandi.
-- `ProfileController` — edit nama/email + ganti sandi.
+- `ProfileController` — edit nama/email + ganti sandi; ganti email mereset verifikasi dan mengirim tautan baru.
 
 ### Inti ujian
 - `ExamService` — mulai/lanjutkan attempt, payload soal (acak), submit.
@@ -100,8 +101,8 @@ Aturan bisnis PRD yang sudah diterapkan:
 
 ### Progres & gamifikasi ringan
 - Tabel `daily_activities` + kolom `attempts.daily_activity_recorded`.
-- `ProgressService` — `record`, `recordAttempt`, `dailyGoal`, `streak`, `leaderboard`, `tryoutRanking`, `resumeAttempt`.
-- `Dashboard.vue` — hero sapaan, kartu lanjutkan, kartu subtes, target harian (cincin SVG), streak, peringkat.
+- `ProgressService` — `record`, `recordAttempt`, `dailyGoal`, `streak`, `leaderboard` (semua/minggu/bulan), `missions`, `tryoutRanking`, `resumeAttempt`.
+- `Dashboard.vue` — hero sapaan, kartu lanjutkan, kartu subtes, target harian (cincin SVG), streak, peringkat dengan tab **Minggu ini / Bulan ini**, kartu **Misi minggu ini** (3 tryout, 50 soal, 100 menit).
 - `Progress/Index.vue` — ringkasan, grafik skor bertumpuk 20 attempt, topik terlemah, menit belajar 14 hari.
 - `History/Index.vue` — riwayat + tren skor.
 
@@ -111,7 +112,7 @@ Aturan bisnis PRD yang sudah diterapkan:
 
 ### Admin
 - `Admin/Dashboard.vue` — statistik + **soal paling sering salah**.
-- Bank soal: index, form, edit/versi (`QuestionVersionService`), impor CSV (`QuestionImportService`).
+- Bank soal: index, form dengan editor teks kaya (Quill), edit/versi (`QuestionVersionService`), impor CSV/Excel (`QuestionImportService`), unggah gambar soal (`POST /admin/questions/{question}/image`, disk `public`, maks 2 MB).
 - Paket tryout: index, editor isi paket (`Admin/Tryouts/Edit.vue` — pilih/urutkan soal), pengaturan paket (judul, deskripsi, durasi, harga, jadwal buka/tutup, terbit).
 - Subtes & passing grade, manajemen pengguna (aktif/nonaktif).
 
@@ -138,18 +139,18 @@ app/Http/Controllers/
   ExamController.php       ResultController.php    ProfileController.php
   PracticeController.php   TryoutController.php
   Admin/{Dashboard,Question,Tryout,Subtest,User}Controller.php
-  Auth/{AuthenticatedSession,RegisteredUser,Google,
+  Auth/{AuthenticatedSession,RegisteredUser,Google,EmailVerification,
         PasswordResetLink,NewPassword}Controller.php
 
 resources/js/Pages/
   Dashboard.vue  Progress/Index.vue  History/Index.vue  Practice/Index.vue
   Tryouts/{Index,Show}.vue  Exam/Attempt.vue  Results/Show.vue
   Profile/Edit.vue
-  Auth/{Login,Register,ForgotPassword,ResetPassword}.vue
+  Auth/{Login,Register,VerifyEmail,ForgotPassword,ResetPassword}.vue
   Admin/{Dashboard,Questions/*,Tryouts/*,Subtests/*,Users/*}.vue
 
-routes/web.php             # 46 route
-tests/Feature/             # 58 test
+routes/web.php             # 50 route
+tests/Feature/             # 77 test
 ```
 
 ---
@@ -158,13 +159,9 @@ tests/Feature/             # 58 test
 
 Urutan usulan, dari yang paling berdampak:
 
-1. **FR-01 — Verifikasi email** (P0 yang masih tertunda; butuh konfigurasi mailer produksi dulu).
-2. **Misi/hadiah harian** — desain dashboard menyebut misi & hadiah; belum ada modelnya.
-3. **Peringkat periode** — filter mingguan/bulanan pada `ProgressService::leaderboard`.
-4. **FR-31 — Editor teks kaya** untuk soal/pembahasan (gambar inline, rumus sederhana).
-5. **FR-32 — Impor Excel** (`.xlsx`), bukan hanya CSV.
-7. **Fase 2** — pembayaran (Midtrans/Xendit), kode voucher, peringkat nasional, notifikasi email.
-8. **Fase 3** — latihan SKB, forum, PWA, laporan mitra bimbel.
+1. **Fase 2** — pembayaran (Midtrans/Xendit), kode voucher, peringkat nasional, notifikasi email.
+2. **Fase 3** — latihan SKB, forum, PWA, laporan mitra bimbel.
+
 Perbaikan kecil yang tertunda:
 
 - Filter soal per topik di editor paket.
@@ -182,6 +179,8 @@ Perbaikan kecil yang tertunda:
 - Factory `Question` dan `Topic` otomatis membuat `Subtest` baru; di test override `subtest_id` **dan** `topic_id` agar tidak bentrok unique `subtests.code`.
 - `ProgressService::leaderboard` hanya menghitung attempt terkirim (`submitted_at` bukan null).
 - `ExamOrderService::shuffle` butuh `Attempt` yang sudah tersimpan (pakai `id`), jangan dipanggil sebelum insert.
+- Teks kaya disanitasi di server (`App\Services\HtmlSanitizer`, allowlist tag) sebelum disimpan; halaman ujian/latihan/hasil baru boleh memakai `v-html`.
+- Impor `.xlsx` butuh ekstensi PHP **`zip`** aktif (`php.ini` Laragon baris `extension=zip`). Tanpa itu PhpSpreadsheet gagal membaca Excel.
 
 ---
 

@@ -15,7 +15,10 @@ class ProfileController extends Controller
     public function edit(Request $request): Response
     {
         return Inertia::render('Profile/Edit', [
-            'profile' => $request->user()->only('id', 'name', 'email', 'google_id'),
+            'profile' => [
+                ...$request->user()->only('id', 'name', 'email', 'google_id'),
+                'verified' => $request->user()->hasVerifiedEmail(),
+            ],
         ]);
     }
 
@@ -28,7 +31,15 @@ class ProfileController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
         ]);
 
-        $user->update($data);
+        $emailChanged = $user->email !== $data['email'];
+
+        $user->forceFill([...$data, ...($emailChanged ? ['email_verified_at' => null] : [])])->save();
+
+        if ($emailChanged) {
+            $user->sendEmailVerificationNotification();
+
+            return redirect()->route('verification.notice')->with('success', 'Email diubah. Verifikasi alamat baru untuk melanjutkan.');
+        }
 
         return back()->with('success', 'Profil diperbarui.');
     }

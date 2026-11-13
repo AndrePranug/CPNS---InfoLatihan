@@ -7,11 +7,14 @@ use App\Http\Requests\Admin\StoreQuestionRequest;
 use App\Models\Question;
 use App\Models\Subtest;
 use App\Models\Topic;
+use App\Services\HtmlSanitizer;
 use App\Services\QuestionImportService;
 use App\Services\QuestionVersionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,7 +32,7 @@ class QuestionController extends Controller
             ->withQueryString()
             ->through(fn (Question $question): array => [
                 'id' => $question->id,
-                'body' => str($question->body)->limit(80),
+                'body' => str(strip_tags($question->body))->limit(80),
                 'subtest' => $question->subtest->code->value,
                 'topic' => $question->topic?->name,
                 'version' => $question->version,
@@ -49,9 +52,17 @@ class QuestionController extends Controller
         ]);
     }
 
-    public function store(StoreQuestionRequest $request): RedirectResponse
+    public function store(StoreQuestionRequest $request, HtmlSanitizer $sanitizer): RedirectResponse
     {
         $data = $request->validated();
+        $body = $sanitizer->clean($data['body']);
+
+        if ($body === '') {
+            throw ValidationException::withMessages(['body' => 'Isi soal wajib diisi.']);
+        }
+
+        $data['body'] = $body;
+        $data['explanation'] = $sanitizer->clean($data['explanation'] ?? null) ?: null;
 
         DB::transaction(function () use ($data): void {
             $question = Question::create([
@@ -92,7 +103,7 @@ class QuestionController extends Controller
     public function import(Request $request, QuestionImportService $importer): RedirectResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt', 'max:2048'],
+            'file' => ['required', 'file', 'extensions:csv,txt,xlsx,xls', 'max:2048'],
         ]);
 
         $result = $importer->import($request->file('file'));
@@ -114,6 +125,7 @@ class QuestionController extends Controller
                 'topic_id' => $question->topic_id,
                 'body' => $question->body,
                 'explanation' => $question->explanation,
+                'image_path' => $question->image_path,
                 'difficulty' => $question->difficulty,
                 'version' => $question->version,
                 'options' => $question->options->sortBy('label')->values()->map(fn ($option): array => [
@@ -124,6 +136,32 @@ class QuestionController extends Controller
                 ]),
             ],
         ]);
+    }
+
+    public function uploadImage(Request $request, Question $question): RedirectResponse
+    {
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $this->deleteUploadedImage($question);
+
+        $question->update([
+            'image_path' => Storage::disk('public')->url($request->file('image')->store('questions', 'public')),
+        ]);
+
+        return back()->with('success', 'Gambar soal diperbarui.');
+    }
+
+    private function deleteUploadedImage(Question $question): void
+    {
+        $path = $question->image_path;
+
+        if ($path === null || ! str_starts_with($path, '/storage/')) {
+            return;
+        }
+
+        Storage::disk('public')->delete(str($path)->after('/storage/')->value());
     }
 
     public function revise(Question $question, QuestionVersionService $versions): RedirectResponse

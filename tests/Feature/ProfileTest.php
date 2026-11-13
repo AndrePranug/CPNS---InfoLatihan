@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -35,6 +37,20 @@ class ProfileTest extends TestCase
 
         $this->assertSame('Nama Baru', $user->fresh()->name);
         $this->assertSame('baru@example.com', $user->fresh()->email);
+    }
+
+    public function test_changing_email_requires_reverification(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create(['email' => 'lama@example.com']);
+
+        $this->actingAs($user)->patch('/profile', [
+            'name' => $user->name,
+            'email' => 'baru@example.com',
+        ])->assertRedirect('/verify-email');
+
+        $this->assertNull($user->fresh()->email_verified_at);
+        Notification::assertSentTo($user, VerifyEmail::class);
     }
 
     public function test_email_must_be_unique(): void

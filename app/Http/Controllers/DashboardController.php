@@ -33,7 +33,11 @@ class DashboardController extends Controller
             ],
             'resume' => $this->progress->resumeAttempt($user),
             'goal' => $this->progress->dailyGoal($user),
-            'leaderboard' => $this->progress->leaderboard($user),
+            'leaderboards' => [
+                'week' => $this->progress->leaderboard($user, 5, 'week'),
+                'month' => $this->progress->leaderboard($user, 5, 'month'),
+            ],
+            'missions' => $this->progress->missions($user),
             'subtests' => Subtest::query()->withCount('questions')->orderBy('id')->get()
                 ->map(fn (Subtest $subtest): array => [
                     'code' => $subtest->code->value,

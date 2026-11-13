@@ -18,7 +18,7 @@ const submit = () => form.post('/admin/questions/import', { forceFormData: true 
 <template>
     <AdminLayout>
         <Head title="Impor Soal" />
-        <h1 class="text-2xl font-bold">Impor Soal CSV</h1>
+        <h1 class="text-2xl font-bold">Impor Soal CSV / Excel</h1>
 
         <div class="mt-6 max-w-2xl space-y-4 rounded-2xl border border-line bg-white p-6 shadow-card">
             <div>
@@ -30,10 +30,11 @@ const submit = () => form.post('/admin/questions/import', { forceFormData: true 
                 <li><code>kunci</code>: A–E, dipakai TWK/TIU.</li>
                 <li><code>bobot</code>: khusus TKP, 5 angka dipisah <code>|</code>, contoh <code>5|4|3|2|1</code>.</li>
                 <li><code>kesulitan</code>: 1–3, kosong = 2. <code>topik</code> dibuat otomatis bila baru.</li>
+                <li>File <code>.csv</code> atau Excel <code>.xlsx</code>, baris pertama header.</li>
             </ul>
 
             <form class="space-y-3" @submit.prevent="submit">
-                <input type="file" accept=".csv,text/csv" aria-label="File CSV" class="block w-full text-sm" @change="pick">
+                <input type="file" accept=".csv,.txt,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" aria-label="File CSV atau Excel" class="block w-full text-sm" @change="pick">
                 <p v-if="form.errors.file" class="text-xs text-danger">{{ form.errors.file }}</p>
                 <button type="submit" class="h-11 rounded-xl bg-brand-600 px-5 font-semibold text-white hover:bg-brand-700 disabled:opacity-50" :disabled="!form.file || form.processing">
                     Impor

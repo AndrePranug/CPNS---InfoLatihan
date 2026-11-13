@@ -32,7 +32,7 @@ const destroy = (id) => {
             <h1 class="text-2xl font-bold">Bank Soal</h1>
             <div class="flex gap-2">
                 <Link href="/admin/questions/import" class="inline-flex h-11 items-center rounded-xl border border-line bg-white px-5 font-semibold hover:bg-brand-50">
-                    Impor CSV
+                    Impor CSV/Excel
                 </Link>
                 <Link href="/admin/questions/create" class="inline-flex h-11 items-center rounded-xl bg-brand-600 px-5 font-semibold text-white hover:bg-brand-700">
                     Tambah soal

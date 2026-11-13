@@ -9,6 +9,8 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
 class QuestionImportTest extends TestCase
@@ -46,6 +48,38 @@ class QuestionImportTest extends TestCase
 
         $twk = Question::where('body', 'Soal TWK?')->with('options')->sole();
         $this->assertSame('B', $twk->options->firstWhere('is_correct', true)->label);
+    }
+
+    public function test_valid_xlsx_rows_are_imported_and_sanitized(): void
+    {
+        Subtest::create(['code' => 'TWK', 'name' => 'TWK', 'question_count' => 30, 'passing_grade' => 65]);
+
+        $spreadsheet = new Spreadsheet;
+        $spreadsheet->getActiveSheet()->fromArray([
+            explode(',', self::HEADER),
+            ['TWK', 'Pancasila', 'Soal Excel <strong>tebal</strong>?', 'Pembahasan <em>jelas</em><script>alert(1)</script>', 2, 'a', 'b', 'c', 'd', 'e', 'B', ''],
+        ]);
+
+        $path = tempnam(sys_get_temp_dir(), 'soal').'.xlsx';
+        (new Xlsx($spreadsheet))->save($path);
+
+        try {
+            $this->actingAs(User::factory()->create(['role' => Role::Admin]))
+                ->post('/admin/questions/import', [
+                    'file' => new UploadedFile($path, 'soal.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true),
+                ])
+                ->assertRedirect()
+                ->assertSessionHasNoErrors();
+        } finally {
+            @unlink($path);
+        }
+
+        $question = Question::with('options')->sole();
+
+        $this->assertSame('Soal Excel <strong>tebal</strong>?', $question->body);
+        $this->assertStringContainsString('<em>jelas</em>', $question->explanation);
+        $this->assertStringNotContainsString('script', $question->explanation);
+        $this->assertSame('B', $question->options->firstWhere('is_correct', true)->label);
     }
 
     public function test_wrong_header_is_rejected(): void

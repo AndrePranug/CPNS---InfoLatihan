@@ -8,38 +8,43 @@ use App\Models\Topic;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use Throwable;
 
 class QuestionImportService
 {
     private const HEADER = ['subtest', 'topik', 'soal', 'pembahasan', 'kesulitan', 'a', 'b', 'c', 'd', 'e', 'kunci', 'bobot'];
 
+    public function __construct(private HtmlSanitizer $sanitizer) {}
+
     /**
-     * Import questions from a CSV file. Returns per-row errors; valid rows are stored.
+     * Import questions from a CSV or Excel file. Returns per-row errors; valid rows are stored.
      *
      * @return array{imported: int, errors: array<int, string>}
      */
     public function import(UploadedFile $file): array
     {
-        $handle = fopen($file->getRealPath(), 'r');
-
-        if ($handle === false) {
-            return ['imported' => 0, 'errors' => ['File tidak bisa dibaca.']];
+        try {
+            $rows = $this->rows($file);
+        } catch (Throwable) {
+            return ['imported' => 0, 'errors' => ['File tidak bisa dibaca. Gunakan CSV atau Excel (.xlsx).']];
         }
 
-        $header = array_map(fn ($value): string => strtolower(trim((string) $value)), fgetcsv($handle) ?: []);
+        if ($rows === []) {
+            return ['imported' => 0, 'errors' => ['File kosong.']];
+        }
+
+        $header = array_map(fn ($value): string => strtolower(trim((string) $value)), array_shift($rows));
 
         if ($header !== self::HEADER) {
-            fclose($handle);
-
-            return ['imported' => 0, 'errors' => ['Header CSV harus: '.implode(',', self::HEADER)]];
+            return ['imported' => 0, 'errors' => ['Header harus: '.implode(',', self::HEADER)]];
         }
 
         $imported = 0;
         $errors = [];
-        $line = 1;
 
-        while (($row = fgetcsv($handle)) !== false) {
-            $line++;
+        foreach ($rows as $index => $row) {
+            $line = (int) $index + 2;
 
             if (count(array_filter($row, fn ($value) => trim((string) $value) !== '')) === 0) {
                 continue;
@@ -60,6 +65,14 @@ class QuestionImportService
 
             if ($validator->fails()) {
                 $errors[] = "Baris {$line}: ".$validator->errors()->first();
+
+                continue;
+            }
+
+            $body = $this->sanitizer->clean($data['soal']);
+
+            if ($body === '') {
+                $errors[] = "Baris {$line}: isi soal kosong setelah dibersihkan.";
 
                 continue;
             }
@@ -90,12 +103,12 @@ class QuestionImportService
                 continue;
             }
 
-            DB::transaction(function () use ($subtest, $data, $labels, $bodies, $kunci, $bobot, $isTkp): void {
+            DB::transaction(function () use ($subtest, $data, $labels, $bodies, $kunci, $bobot, $isTkp, $body): void {
                 $question = Question::create([
                     'subtest_id' => $subtest->id,
                     'topic_id' => $this->topicId($subtest->id, $data['topik'] ?? null),
-                    'body' => $data['soal'],
-                    'explanation' => $data['pembahasan'] ?? null,
+                    'body' => $body,
+                    'explanation' => $this->sanitizer->clean($data['pembahasan'] ?? null) ?: null,
                     'difficulty' => (int) ($data['kesulitan'] ?? 2) ?: 2,
                 ]);
 
@@ -112,9 +125,38 @@ class QuestionImportService
             $imported++;
         }
 
+        return ['imported' => $imported, 'errors' => $errors];
+    }
+
+    /**
+     * @return array<int, array<int, string|null>>
+     */
+    private function rows(UploadedFile $file): array
+    {
+        if (in_array(strtolower($file->getClientOriginalExtension()), ['xlsx', 'xls'], true)) {
+            $sheet = IOFactory::load($file->getRealPath())->getActiveSheet();
+
+            return array_map(
+                fn (array $row): array => array_map(fn ($value): ?string => $value === null ? null : (string) $value, $row),
+                $sheet->toArray(null, true, false),
+            );
+        }
+
+        $handle = fopen($file->getRealPath(), 'r');
+
+        if ($handle === false) {
+            throw new \RuntimeException('File tidak bisa dibaca.');
+        }
+
+        $rows = [];
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rows[] = array_map(fn ($value): ?string => $value === null ? null : (string) $value, $row);
+        }
+
         fclose($handle);
 
-        return ['imported' => $imported, 'errors' => $errors];
+        return $rows;
     }
 
     private function topicId(int $subtestId, ?string $name): ?int

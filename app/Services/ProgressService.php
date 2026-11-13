@@ -113,11 +113,12 @@ class ProgressService
     /**
      * Top scorers by best total score per user, across finished attempts.
      *
+     * @param  'all'|'week'|'month'  $period
      * @return Collection<int, array{name: string, score: int, is_me: bool}>
      */
-    public function leaderboard(User $user, int $limit = 5): Collection
+    public function leaderboard(User $user, int $limit = 5, string $period = 'all'): Collection
     {
-        return $this->bestScoresPerUser()
+        return $this->bestScoresPerUser($period)
             ->take($limit)
             ->map(fn (object $row): array => [
                 'name' => $row->name,
@@ -128,14 +129,52 @@ class ProgressService
     }
 
     /**
-     * @return Collection<int, array{user_id: int, name: string, best_score: int}>
+     * Weekly missions derived from existing activity; no rewards are claimed or stored.
+     *
+     * @return array<int, array{key: string, label: string, current: int, target: int, done: bool}>
      */
-    private function bestScoresPerUser(): Collection
+    public function missions(User $user): array
+    {
+        $weekStart = now()->startOfWeek()->toDateString();
+        $weekEnd = now()->endOfWeek()->toDateString();
+
+        $activity = DailyActivity::query()
+            ->where('user_id', $user->id)
+            ->whereBetween('activity_date', [$weekStart, $weekEnd])
+            ->selectRaw('coalesce(sum(study_minutes), 0) as minutes, coalesce(sum(questions_answered), 0) as questions')
+            ->first();
+
+        $tryouts = Attempt::query()
+            ->where('user_id', $user->id)
+            ->whereNotNull('submitted_at')
+            ->where('submitted_at', '>=', now()->startOfWeek())
+            ->count();
+
+        $missions = [
+            ['key' => 'tryout', 'label' => 'Selesaikan 3 tryout', 'current' => $tryouts, 'target' => 3],
+            ['key' => 'questions', 'label' => 'Jawab 50 soal', 'current' => (int) $activity->questions, 'target' => 50],
+            ['key' => 'minutes', 'label' => 'Belajar 100 menit', 'current' => (int) $activity->minutes, 'target' => 100],
+        ];
+
+        return array_map(fn (array $mission): array => [
+            ...$mission,
+            'current' => min($mission['current'], $mission['target']),
+            'done' => $mission['current'] >= $mission['target'],
+        ], $missions);
+    }
+
+    /**
+     * @param  'all'|'week'|'month'  $period
+     * @return Collection<int, object{user_id: int, name: string, best_score: int}>
+     */
+    private function bestScoresPerUser(string $period = 'all'): Collection
     {
         // ponytail: one query per call; add cache if dashboard gets hot.
         return DB::table('attempts')
             ->join('users', 'users.id', '=', 'attempts.user_id')
             ->whereNotNull('attempts.submitted_at')
+            ->when($period === 'week', fn ($query) => $query->where('attempts.submitted_at', '>=', now()->startOfWeek()))
+            ->when($period === 'month', fn ($query) => $query->where('attempts.submitted_at', '>=', now()->startOfMonth()))
             ->groupBy('attempts.user_id', 'users.name')
             ->orderByDesc('best_score')
             ->get([

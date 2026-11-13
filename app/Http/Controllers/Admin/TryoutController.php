@@ -79,7 +79,7 @@ class TryoutController extends Controller
             ->map(fn (Question $question): array => [
                 'id' => $question->id,
                 'subtest' => $question->subtest->code->value,
-                'body' => str($question->body)->limit(110)->value(),
+                'body' => str(strip_tags($question->body))->limit(110)->value(),
                 'version' => $question->version,
                 'options_count' => $question->options_count,
                 'valid' => $question->options_count === 5,

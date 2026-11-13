@@ -120,7 +120,7 @@ const badge = {
                         <span v-if="item.is_flagged" class="rounded-full bg-warning/10 px-2 py-1 font-semibold text-warning">ragu-ragu</span>
                     </div>
 
-                    <p class="mt-3 font-semibold leading-relaxed">{{ item.body }}</p>
+                    <div class="rich-text mt-3 font-semibold leading-relaxed" v-html="item.body"></div>
                     <img v-if="item.image_path" :src="item.image_path" alt="Gambar soal" class="mt-3 max-h-60 rounded-xl border border-line">
 
                     <ul class="mt-3 space-y-1 text-sm">
@@ -140,9 +140,7 @@ const badge = {
                         </li>
                     </ul>
 
-                    <p v-if="item.explanation" class="mt-3 rounded-xl bg-brand-50 p-3 text-sm text-ink-600">
-                        {{ item.explanation }}
-                    </p>
+                    <div v-if="item.explanation" class="rich-text mt-3 rounded-xl bg-brand-50 p-3 text-sm text-ink-600" v-html="item.explanation"></div>
                 </li>
             </ol>
         </section>

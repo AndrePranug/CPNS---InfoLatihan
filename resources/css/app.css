@@ -36,3 +36,38 @@
         @apply bg-page text-ink-900 antialiased;
     }
 }
+
+@layer components {
+    .rich-text {
+        @apply leading-relaxed;
+    }
+
+    .rich-text > :where(p) {
+        @apply mb-2 last:mb-0;
+    }
+
+    .rich-text :where(ul) {
+        @apply mb-2 list-disc pl-5;
+    }
+
+    .rich-text :where(ol) {
+        @apply mb-2 list-decimal pl-5;
+    }
+
+    .rich-text :where(sup, sub) {
+        font-size: 0.75em;
+        line-height: 0;
+    }
+
+    .rich-text-editor .ql-toolbar.ql-snow {
+        @apply rounded-t-xl border-line bg-white;
+    }
+
+    .rich-text-editor .ql-container.ql-snow {
+        @apply min-h-36 rounded-b-xl border-line bg-white text-[15px];
+    }
+
+    .rich-text-editor .ql-editor {
+        @apply min-h-36 font-sans;
+    }
+}

@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ProgressRing from '@/Components/ui/ProgressRing.vue';
 
@@ -8,10 +8,19 @@ const props = defineProps({
     stats: { type: Object, required: true },
     resume: { type: Object, default: null },
     goal: { type: Object, required: true },
-    leaderboard: { type: Array, required: true },
+    leaderboards: { type: Object, required: true },
+    missions: { type: Array, required: true },
     subtests: { type: Array, required: true },
     user: { type: Object, required: true },
 });
+
+const periodTabs = [
+    { value: 'week', label: 'Minggu ini' },
+    { value: 'month', label: 'Bulan ini' },
+];
+
+const period = ref('week');
+const activeLeaderboard = computed(() => props.leaderboards[period.value] ?? []);
 
 const greeting = computed(() => {
     const hour = new Date().getHours();
@@ -133,11 +142,25 @@ const dailyDone = computed(() => goal.days.filter((day) => day.done).length);
                 </section>
 
                 <section class="rounded-2xl border border-line bg-surface p-5 shadow-card">
-                    <h2 class="text-sm font-bold">Peringkat</h2>
-                    <p v-if="leaderboard.length === 0" class="mt-2 text-xs text-ink-600">Belum ada peserta menyelesaikan tryout.</p>
+                    <div class="flex items-center justify-between gap-2">
+                        <h2 class="text-sm font-bold">Peringkat</h2>
+                        <div class="flex gap-1" role="tablist" aria-label="Periode peringkat">
+                            <button
+                                v-for="tab in periodTabs"
+                                :key="tab.value"
+                                role="tab"
+                                :aria-selected="period === tab.value"
+                                :class="['h-7 rounded-lg px-2 text-[11px] font-semibold', period === tab.value ? 'bg-brand-600 text-white' : 'text-ink-600 hover:bg-brand-50']"
+                                @click="period = tab.value"
+                            >
+                                {{ tab.label }}
+                            </button>
+                        </div>
+                    </div>
+                    <p v-if="activeLeaderboard.length === 0" class="mt-2 text-xs text-ink-600">Belum ada peserta menyelesaikan tryout periode ini.</p>
                     <ol v-else class="mt-3 space-y-1">
                         <li
-                            v-for="(row, index) in leaderboard"
+                            v-for="(row, index) in activeLeaderboard"
                             :key="`${row.name}-${index}`"
                             :class="['flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm', row.is_me ? 'bg-brand-100' : '']"
                         >
@@ -150,6 +173,27 @@ const dailyDone = computed(() => goal.days.filter((day) => day.done).length);
                         </li>
                     </ol>
                     <p class="mt-3 text-xs text-ink-400">Skor terbaik per peserta, semua paket.</p>
+                </section>
+
+                <section class="rounded-2xl border border-line bg-surface p-5 shadow-card">
+                    <h2 class="text-sm font-bold">Misi minggu ini</h2>
+                    <ul class="mt-3 space-y-3">
+                        <li v-for="mission in missions" :key="mission.key">
+                            <div class="flex items-center justify-between text-xs">
+                                <span :class="mission.done ? 'font-semibold text-success' : 'text-ink-600'">
+                                    {{ mission.done ? 'Selesai · ' : '' }}{{ mission.label }}
+                                </span>
+                                <span class="font-semibold tabular-nums text-ink-600">{{ mission.current }}/{{ mission.target }}</span>
+                            </div>
+                            <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-brand-100">
+                                <div
+                                    :class="['h-full rounded-full', mission.done ? 'bg-success' : 'bg-brand-600']"
+                                    :style="{ width: `${Math.round((mission.current / mission.target) * 100)}%` }"
+                                ></div>
+                            </div>
+                        </li>
+                    </ul>
+                    <p class="mt-3 text-xs text-ink-400">Misi disetel ulang setiap Senin.</p>
                 </section>
 
                 <section class="rounded-2xl border border-line bg-surface p-5 shadow-card">

@@ -2,6 +2,7 @@
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import RichTextEditor from '@/Components/RichTextEditor.vue';
 
 const props = defineProps({
     subtests: { type: Array, required: true },
@@ -25,6 +26,14 @@ const form = useForm({
 const selectedSubtest = computed(() => props.subtests.find((s) => s.id === Number(form.subtest_id)));
 const isTkp = computed(() => selectedSubtest.value?.code === 'TKP');
 const filteredTopics = computed(() => props.topics.filter((t) => t.subtest_id === Number(form.subtest_id)));
+
+const imageForm = useForm({ image: null });
+
+const uploadImage = () => imageForm.post(`/admin/questions/${props.question.id}/image`, {
+    preserveScroll: true,
+    forceFormData: true,
+    onSuccess: () => imageForm.reset('image'),
+});
 
 const setCorrect = (index) => {
     form.options.forEach((option, i) => {
@@ -72,14 +81,15 @@ const submit = () => {
                 </div>
 
                 <div>
-                    <label for="body" class="mb-1 block text-sm font-medium">Isi soal</label>
-                    <textarea id="body" v-model="form.body" rows="6" class="w-full rounded-xl border border-line bg-white p-3 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none"></textarea>
+                    <p class="mb-1 block text-sm font-medium">Isi soal</p>
+                    <RichTextEditor v-model="form.body" placeholder="Tulis isi soal di sini…" label="Isi soal" />
+                    <p class="mt-1 text-xs text-ink-400">Bold, miring, garis bawah, superskrip/subskrip untuk rumus, dan daftar.</p>
                     <p v-if="form.errors.body" class="mt-1 text-xs text-danger">{{ form.errors.body }}</p>
                 </div>
 
                 <div>
-                    <label for="explanation" class="mb-1 block text-sm font-medium">Pembahasan</label>
-                    <textarea id="explanation" v-model="form.explanation" rows="4" class="w-full rounded-xl border border-line bg-white p-3 focus:border-brand-600 focus:ring-2 focus:ring-brand-600/20 focus:outline-none"></textarea>
+                    <p class="mb-1 block text-sm font-medium">Pembahasan</p>
+                    <RichTextEditor v-model="form.explanation" placeholder="Tulis pembahasan…" label="Pembahasan" />
                 </div>
 
                 <div>
@@ -89,6 +99,31 @@ const submit = () => {
                         <option :value="2">Sedang</option>
                         <option :value="3">Sulit</option>
                     </select>
+                </div>
+
+                <div class="border-t border-line pt-4">
+                    <p class="text-sm font-medium">Gambar soal</p>
+                    <template v-if="isEdit">
+                        <img v-if="question.image_path" :src="question.image_path" alt="Gambar soal saat ini" class="mt-2 max-h-40 rounded-xl border border-line">
+                        <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            aria-label="Unggah gambar soal"
+                            class="mt-2 block w-full text-sm"
+                            @input="imageForm.image = $event.target.files[0]"
+                        >
+                        <p class="mt-1 text-xs text-ink-400">JPG, PNG, atau WEBP. Maks 2 MB. Mengunggah akan mengganti gambar lama.</p>
+                        <p v-if="imageForm.errors.image" class="mt-1 text-xs text-danger">{{ imageForm.errors.image }}</p>
+                        <button
+                            type="button"
+                            class="mt-2 h-10 rounded-xl border border-line bg-white px-4 text-sm font-semibold hover:bg-brand-50 disabled:opacity-50"
+                            :disabled="!imageForm.image || imageForm.processing"
+                            @click="uploadImage"
+                        >
+                            Unggah gambar
+                        </button>
+                    </template>
+                    <p v-else class="mt-1 text-xs text-ink-400">Simpan soal dulu, lalu unggah gambar dari halaman revisi.</p>
                 </div>
             </div>
 

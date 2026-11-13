@@ -79,9 +79,51 @@ class DashboardProgressTest extends TestCase
                 ->where('goal.target', ProgressService::DAILY_TARGET_MINUTES)
                 ->has('goal.days', 7)
                 ->where('resume.title', 'Paket')
-                ->where('leaderboard.0.name', 'Peserta Dua')
-                ->where('leaderboard.0.score', 400)
+                ->where('leaderboards.week.0.name', 'Peserta Dua')
+                ->where('leaderboards.week.0.score', 400)
+                ->has('missions', 3)
             );
+    }
+
+    public function test_leaderboard_period_excludes_older_attempts(): void
+    {
+        $me = User::factory()->create();
+        $old = User::factory()->create(['name' => 'Lama']);
+        $tryout = Tryout::create(['title' => 'Paket', 'duration_minutes' => 100]);
+
+        Attempt::create([
+            'user_id' => $old->id,
+            'tryout_id' => $tryout->id,
+            'started_at' => now()->subMonths(2),
+            'ends_at' => now()->subMonths(2)->addHour(),
+            'submitted_at' => now()->subMonths(2),
+            'total_score' => 500,
+        ]);
+
+        $service = app(ProgressService::class);
+
+        $this->assertCount(0, $service->leaderboard($me, 5, 'week'));
+        $this->assertCount(0, $service->leaderboard($me, 5, 'month'));
+        $this->assertCount(1, $service->leaderboard($me, 5, 'all'));
+    }
+
+    public function test_missions_track_weekly_activity(): void
+    {
+        $user = User::factory()->create();
+
+        DailyActivity::create([
+            'user_id' => $user->id,
+            'activity_date' => now()->startOfWeek()->toDateString(),
+            'study_minutes' => 120,
+            'questions_answered' => 60,
+        ]);
+
+        $missions = collect(app(ProgressService::class)->missions($user))->keyBy('key');
+
+        $this->assertTrue($missions['minutes']['done']);
+        $this->assertTrue($missions['questions']['done']);
+        $this->assertFalse($missions['tryout']['done']);
+        $this->assertSame(3, $missions['tryout']['target']);
     }
 
     public function test_submitting_attempt_records_daily_activity_once(): void

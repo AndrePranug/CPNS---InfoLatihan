@@ -23,6 +23,11 @@ const savePassword = () => password.put('/profile/password', {
         <Head title="Profil" />
         <h1 class="text-3xl font-bold">Profil</h1>
 
+        <div v-if="!profile.verified" role="status" class="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-warning/10 px-4 py-3 text-sm text-warning">
+            <p>Email <span class="font-semibold">{{ profile.email }}</span> belum diverifikasi.</p>
+            <Link href="/email/verification-notification" method="post" as="button" class="font-semibold underline">Kirim ulang tautan</Link>
+        </div>
+
         <div class="mt-5 grid gap-6 lg:grid-cols-2">
             <section class="rounded-2xl border border-line bg-white p-6 shadow-card">
                 <h2 class="text-lg font-bold">Data akun</h2>

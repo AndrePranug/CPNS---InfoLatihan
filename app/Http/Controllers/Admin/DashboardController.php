@@ -55,7 +55,7 @@ class DashboardController extends Controller
             ])
             ->map(fn ($row): array => [
                 'id' => (int) $row->id,
-                'body' => str($row->body)->limit(110)->value(),
+                'body' => str(strip_tags($row->body))->limit(110)->value(),
                 'subtest' => (string) $row->subtest,
                 'answered' => (int) $row->answered,
                 'correct_rate' => (int) $row->correct_rate,

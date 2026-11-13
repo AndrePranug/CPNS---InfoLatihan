@@ -153,7 +153,7 @@ onUnmounted(() => {
                 <p class="text-xs text-ink-400">
                     Soal {{ index + 1 }} dari {{ questions.length }} · {{ current.subtest }}
                 </p>
-                <h1 class="mt-2 text-lg font-semibold leading-relaxed" tabindex="-1">{{ current.body }}</h1>
+                <div class="rich-text mt-2 text-lg font-semibold leading-relaxed" tabindex="-1" v-html="current.body"></div>
                 <img v-if="current.image_path" :src="current.image_path" alt="Gambar soal" class="mt-4 max-h-72 rounded-xl border border-line">
 
                 <ul class="mt-6 space-y-3" role="radiogroup" :aria-label="`Pilihan jawaban soal ${index + 1}`">
