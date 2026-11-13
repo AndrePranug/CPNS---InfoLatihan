@@ -1,58 +1,101 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Latihan CPNS — Simulasi SKD
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi web tryout CPNS **Seleksi Kompetensi Dasar (TWK / TIU / TKP)** dengan penilaian otomatis, pembahasan, progres belajar, dan panel admin. Dibangun dengan Laravel + Inertia + Vue.
 
-## About Laravel
+## Fitur yang Sudah Selesai
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Peserta
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Akun** — registrasi & login email + sandi, **verifikasi email** (tautan bertanda tangan, kirim ulang), **login Google** (OAuth), lupa/reset sandi, edit profil, ganti sandi. Ganti email otomatis mereset verifikasi.
+- **Dasbor** — sapaan, kartu lanjutkan tryout, ringkasan subtes, target belajar harian (cincin progres), **streak**, **misi mingguan**, dan **peringkat** dengan tab minggu ini / bulan ini.
+- **Daftar tryout** — status pengerjaan, jadwal buka/tutup, harga, dan tombol mulai/lanjutkan.
+- **Halaman ujian** — satu soal per layar, **timer dihitung server**, grid nomor soal, navigasi keyboard, tandai ragu-ragu, **autosave jawaban**, submit manual + otomatis saat waktu habis. Satu attempt aktif per paket, soal & pilihan **diacak deterministik** per attempt, kunci tidak dikirim sebelum submit.
+- **Hasil** — skor per subtes dan total, status passing grade, peringkat paket, analisis topik terlemah, pembahasan tiap soal (termasuk gambar), filter hasil.
+- **Riwayat & progres** — riwayat nilai, grafik perkembangan 20 attempt, topik terlemah, menit belajar 14 hari.
+- **Latihan bebas** — filter subtes/topik, tanpa timer, kunci + pembahasan instan setelah menjawab.
+- **Halaman beranda** publik.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Admin
 
-## Learning Laravel
+- **Dasbor statistik** — jumlah peserta/soal/attempt dan **soal paling sering salah**.
+- **Bank soal** — CRUD, revisi berversi yang aman (ditolak bila soal dipakai attempt aktif), **editor teks kaya** (bold, miring, garis bawah, superskrip/subskrip, daftar) dengan **sanitasi HTML di server**, unggah gambar soal, **impor CSV & Excel** (`.xlsx`/`.xls`) dengan validasi per baris dan laporan baris gagal.
+- **Paket tryout** — pilih & urutkan soal, durasi, passing grade, jadwal buka/tutup, harga, simpan sebagai draf atau terbitkan.
+- **Subtes & passing grade**, **manajemen pengguna** (aktif/nonaktif).
+- **Peran** admin/peserta dengan middleware dan otorisasi server-side.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Teknologi
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Lapisan | Dipakai |
+| --- | --- |
+| Backend | Laravel 13, PHP 8.4 |
+| Frontend | Inertia 3, Vue 3, Tailwind CSS 4, Vite 8 |
+| Database | MySQL 8 |
+| Pendukung | Laravel Socialite, Quill 2, PhpSpreadsheet, Symfony HtmlSanitizer |
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Persyaratan
 
-## Agentic Development
+- PHP **8.3+** dengan ekstensi **`zip`** aktif (wajib untuk impor Excel)
+- Composer
+- Node.js 20+
+- MySQL 8
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Instalasi
 
 ```bash
-composer require laravel/boost --dev
+composer install
+npm install
 
-php artisan boost:install
+cp .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Atur koneksi database di `.env`:
 
-## Contributing
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=cpns
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Lalu:
 
-## Code of Conduct
+```bash
+php artisan migrate --seed
+npm run build        # atau: npm run dev
+php artisan serve --host=127.0.0.1
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Buka `http://127.0.0.1:8000`.
 
-## Security Vulnerabilities
+### Akun seed
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+| Peran | Email | Sandi |
+| --- | --- | --- |
+| Admin | `admin@example.com` | `password` |
+| Peserta | `test@example.com` | `password` |
 
-## License
+Ganti kredensial ini sebelum dipakai di produksi.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Konfigurasi opsional
+
+- **Google login** — isi `GOOGLE_CLIENT_ID` dan `GOOGLE_CLIENT_SECRET`. Redirect URI: `http://127.0.0.1:8000/auth/google/callback`. Bila kosong, route login Google mengembalikan 404.
+- **Email** — default `MAIL_MAILER=log`. Tautan verifikasi dan reset sandi masuk ke `storage/logs/laravel.log`. Untuk produksi isi SMTP.
+
+## Test
+
+```bash
+php artisan test --compact    # 77 test, 362 assertion
+vendor/bin/pint --format agent
+```
+
+## Status Pengembangan
+
+Seluruh kebutuhan **P0/P1** PRD (FR-01 – FR-35) sudah selesai. Yang belum:
+
+- **FR-36 / Fase 2** — pembayaran (Midtrans/Xendit), kode voucher, peringkat nasional, notifikasi email.
+- **Fase 3** — latihan SKB, forum, PWA, laporan mitra bimbel.
+
+Rincian progres, arsitektur, dan catatan teknis ada di [`PROGRESS.md`](PROGRESS.md).

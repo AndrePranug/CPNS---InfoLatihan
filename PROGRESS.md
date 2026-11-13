@@ -37,7 +37,7 @@ Catatan lingkungan:
 
 - `php artisan serve --host=127.0.0.1` (jangan `localhost`, dia bind IPv6 saja).
 - Windows PowerShell 5.1: `php artisan tinker --execute` merusak kutip; pakai file skrip + `php artisan tinker skrip.php`.
-- Proyek **bukan** repo git, jadi `pint --dirty` tidak tersedia — pakai `pint --format agent`.
+- Proyek sudah repo git; `pint --dirty` bisa dipakai, atau `pint --format agent`.
 - Kalau frontend tidak berubah di browser: `npm run build`.
 - Reset sandi memakai mailer; default `MAIL_MAILER=log` → tautan masuk `storage/logs/laravel.log`.
 
