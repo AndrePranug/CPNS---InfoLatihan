@@ -1,4 +1,10 @@
 <script setup>
+import { Link, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
+
+const page = usePage();
+const user = computed(() => page.props.auth?.user ?? null);
+
 const subtests = [
     { code: 'TWK', name: 'Tes Wawasan Kebangsaan', count: 30, bg: 'bg-twk-bg', fg: 'text-twk' },
     { code: 'TIU', name: 'Tes Intelegensia Umum', count: 35, bg: 'bg-tiu-bg', fg: 'text-tiu' },
@@ -15,12 +21,12 @@ const subtests = [
                 Tryout 110 soal dengan timer 100 menit, penilaian otomatis, dan pembahasan per soal.
             </p>
             <div class="mt-6 flex flex-wrap gap-3">
-                <a href="#" class="inline-flex h-11 items-center rounded-xl bg-brand-600 px-5 font-semibold text-white hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2">
+                <Link :href="user ? '/tryouts' : '/login'" class="inline-flex h-11 items-center rounded-xl bg-brand-600 px-5 font-semibold text-white hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2">
                     Mulai Tryout
-                </a>
-                <a href="#" class="inline-flex h-11 items-center rounded-xl border border-line bg-white px-5 font-semibold hover:bg-brand-50">
-                    Daftar
-                </a>
+                </Link>
+                <Link :href="user ? '/dashboard' : '/register'" class="inline-flex h-11 items-center rounded-xl border border-line bg-white px-5 font-semibold hover:bg-brand-50">
+                    {{ user ? 'Dasbor' : 'Daftar' }}
+                </Link>
             </div>
         </section>
 
