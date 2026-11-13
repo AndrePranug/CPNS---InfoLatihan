@@ -38,6 +38,7 @@ class DashboardController extends Controller
                 'month' => $this->progress->leaderboard($user, 5, 'month'),
             ],
             'missions' => $this->progress->missions($user),
+            'user' => $user->only('id', 'name'),
             'subtests' => Subtest::query()->withCount('questions')->orderBy('id')->get()
                 ->map(fn (Subtest $subtest): array => [
                     'code' => $subtest->code->value,
