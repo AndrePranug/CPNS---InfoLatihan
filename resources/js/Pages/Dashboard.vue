@@ -37,7 +37,7 @@ const palette = {
     TKP: 'bg-tkp-bg text-tkp',
 };
 
-const dailyDone = computed(() => goal.days.filter((day) => day.done).length);
+const dailyDone = computed(() => props.goal.days.filter((day) => day.done).length);
 </script>
 
 <template>
