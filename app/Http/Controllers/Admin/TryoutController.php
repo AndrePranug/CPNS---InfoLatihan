@@ -71,6 +71,7 @@ class TryoutController extends Controller
             ->all();
 
         $bank = Question::query()
+            ->where('exam_type', Question::EXAM_SKD)
             ->with('subtest:id,code')
             ->withCount('options')
             ->orderBy('subtest_id')

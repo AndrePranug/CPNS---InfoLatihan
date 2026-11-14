@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreQuestionRequest;
+use App\Models\Formation;
 use App\Models\Question;
 use App\Models\Subtest;
 use App\Models\Topic;
@@ -25,7 +26,7 @@ class QuestionController extends Controller
         $search = $request->string('q')->trim()->value();
 
         $questions = Question::query()
-            ->with(['subtest', 'topic'])
+            ->with(['subtest', 'topic', 'formation'])
             ->when($search !== '', fn ($query) => $query->where('body', 'like', "%{$search}%"))
             ->latest('id')
             ->paginate(20)
@@ -33,7 +34,9 @@ class QuestionController extends Controller
             ->through(fn (Question $question): array => [
                 'id' => $question->id,
                 'body' => str(strip_tags($question->body))->limit(80),
-                'subtest' => $question->subtest->code->value,
+                'exam_type' => $question->exam_type,
+                'subtest' => $question->subtest?->code->value,
+                'formation' => $question->formation?->name,
                 'topic' => $question->topic?->name,
                 'version' => $question->version,
             ]);
@@ -49,6 +52,7 @@ class QuestionController extends Controller
         return Inertia::render('Admin/Questions/Form', [
             'subtests' => Subtest::all(['id', 'code', 'name']),
             'topics' => Topic::all(['id', 'subtest_id', 'name']),
+            'formations' => Formation::orderBy('name')->get(['id', 'name', 'is_active']),
         ]);
     }
 
@@ -66,8 +70,10 @@ class QuestionController extends Controller
 
         DB::transaction(function () use ($data): void {
             $question = Question::create([
-                'subtest_id' => $data['subtest_id'],
-                'topic_id' => $data['topic_id'] ?? null,
+                'exam_type' => $data['exam_type'],
+                'subtest_id' => $data['exam_type'] === Question::EXAM_SKD ? $data['subtest_id'] : null,
+                'formation_id' => $data['exam_type'] === Question::EXAM_SKB ? $data['formation_id'] : null,
+                'topic_id' => $data['exam_type'] === Question::EXAM_SKD ? ($data['topic_id'] ?? null) : null,
                 'body' => $data['body'],
                 'explanation' => $data['explanation'] ?? null,
                 'difficulty' => $data['difficulty'],
@@ -119,9 +125,12 @@ class QuestionController extends Controller
         return Inertia::render('Admin/Questions/Form', [
             'subtests' => Subtest::all(['id', 'code', 'name']),
             'topics' => Topic::all(['id', 'subtest_id', 'name']),
+            'formations' => Formation::orderBy('name')->get(['id', 'name', 'is_active']),
             'question' => [
                 'id' => $question->id,
+                'exam_type' => $question->exam_type,
                 'subtest_id' => $question->subtest_id,
+                'formation_id' => $question->formation_id,
                 'topic_id' => $question->topic_id,
                 'body' => $question->body,
                 'explanation' => $question->explanation,

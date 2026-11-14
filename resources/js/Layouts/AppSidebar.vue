@@ -10,6 +10,7 @@ const items = [
     { href: '/dashboard', label: 'Beranda' },
     { href: '/tryouts', label: 'Tryout' },
     { href: '/practice', label: 'Latihan' },
+    { href: '/forum', label: 'Forum' },
     { href: '/progress', label: 'Progres' },
     { href: '/rankings', label: 'Peringkat' },
     { href: '/history', label: 'Riwayat' },

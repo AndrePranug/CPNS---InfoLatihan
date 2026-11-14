@@ -7,6 +7,7 @@ const props = defineProps({
     questions: { type: Array, required: true },
     subtests: { type: Array, required: true },
     topics: { type: Array, required: true },
+    formations: { type: Array, required: true },
     filters: { type: Object, required: true },
 });
 
@@ -23,14 +24,21 @@ const finished = computed(() => index.value >= props.questions.length);
 
 const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
+const filterMode = ref(props.filters.mode ?? 'skd');
 const filterSubtest = ref(props.filters.subtest ?? '');
 const filterTopic = ref(props.filters.topic ?? '');
+const filterFormation = ref(props.filters.formation ?? '');
 
 const applyFilter = () => {
-    router.get('/practice', {
-        subtest: filterSubtest.value || undefined,
-        topic: filterTopic.value || undefined,
-    }, { preserveState: false });
+    const query = filterMode.value === 'skb'
+        ? { mode: 'skb', formation: filterFormation.value || undefined }
+        : {
+            mode: 'skd',
+            subtest: filterSubtest.value || undefined,
+            topic: filterTopic.value || undefined,
+        };
+
+    router.get('/practice', query, { preserveState: false });
 };
 
 const visibleTopics = computed(() => (
@@ -98,6 +106,12 @@ const optionClass = (option) => {
 watch(filterSubtest, () => {
     filterTopic.value = '';
 });
+
+watch(filterMode, () => {
+    filterSubtest.value = '';
+    filterTopic.value = '';
+    filterFormation.value = '';
+});
 </script>
 
 <template>
@@ -116,17 +130,33 @@ watch(filterSubtest, () => {
 
         <form class="mt-5 flex flex-wrap items-end gap-2 rounded-2xl border border-line bg-white p-4 shadow-card" @submit.prevent="applyFilter">
             <label class="text-sm">
-                <span class="mb-1 block font-medium">Subtes</span>
-                <select v-model="filterSubtest" class="h-10 rounded-xl border border-line px-3">
-                    <option value="">Semua</option>
-                    <option v-for="subtest in subtests" :key="subtest.code" :value="subtest.code">{{ subtest.code }} — {{ subtest.name }}</option>
+                <span class="mb-1 block font-medium">Jenis</span>
+                <select v-model="filterMode" class="h-10 rounded-xl border border-line px-3">
+                    <option value="skd">SKD</option>
+                    <option value="skb">SKB per formasi</option>
                 </select>
             </label>
-            <label class="text-sm">
-                <span class="mb-1 block font-medium">Topik</span>
-                <select v-model="filterTopic" class="h-10 rounded-xl border border-line px-3">
-                    <option value="">Semua</option>
-                    <option v-for="topic in visibleTopics" :key="topic.id" :value="topic.id">{{ topic.subtest }} · {{ topic.name }}</option>
+            <template v-if="filterMode === 'skd'">
+                <label class="text-sm">
+                    <span class="mb-1 block font-medium">Subtes</span>
+                    <select v-model="filterSubtest" class="h-10 rounded-xl border border-line px-3">
+                        <option value="">Semua</option>
+                        <option v-for="subtest in subtests" :key="subtest.code" :value="subtest.code">{{ subtest.code }} — {{ subtest.name }}</option>
+                    </select>
+                </label>
+                <label class="text-sm">
+                    <span class="mb-1 block font-medium">Topik</span>
+                    <select v-model="filterTopic" class="h-10 rounded-xl border border-line px-3">
+                        <option value="">Semua</option>
+                        <option v-for="topic in visibleTopics" :key="topic.id" :value="topic.id">{{ topic.subtest }} · {{ topic.name }}</option>
+                    </select>
+                </label>
+            </template>
+            <label v-else class="text-sm">
+                <span class="mb-1 block font-medium">Formasi</span>
+                <select v-model="filterFormation" class="h-10 rounded-xl border border-line px-3">
+                    <option value="">Semua formasi</option>
+                    <option v-for="formation in formations" :key="formation.id" :value="formation.id">{{ formation.name }} ({{ formation.question_count }})</option>
                 </select>
             </label>
             <button type="submit" class="h-10 rounded-xl bg-brand-600 px-4 font-semibold text-white hover:bg-brand-700">Terapkan</button>
@@ -134,12 +164,12 @@ watch(filterSubtest, () => {
         </form>
 
         <p v-if="questions.length === 0" class="mt-6 rounded-2xl border border-line bg-white p-6 text-sm text-ink-600">
-            Belum ada soal untuk filter ini.
+            Belum ada soal {{ filterMode === 'skb' ? 'SKB' : 'SKD' }} untuk filter ini.
         </p>
 
         <section v-else-if="!finished" class="mt-6 rounded-2xl border border-line bg-white p-6 shadow-card">
             <p class="text-xs text-ink-400">
-                Soal {{ index + 1 }} dari {{ questions.length }} · {{ current.subtest }}
+                Soal {{ index + 1 }} dari {{ questions.length }} · {{ current.label }}
                 <span v-if="current.topic"> · {{ current.topic }}</span>
             </p>
             <div class="rich-text mt-2 text-lg font-semibold leading-relaxed" v-html="current.body"></div>

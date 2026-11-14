@@ -8,7 +8,9 @@ const links = [
     { href: '/admin/questions', label: 'Bank Soal' },
     { href: '/admin/tryouts', label: 'Paket Tryout' },
     { href: '/admin/vouchers', label: 'Voucher' },
+    { href: '/admin/formations', label: 'Formasi SKB' },
     { href: '/admin/subtests', label: 'Subtes' },
+    { href: '/admin/reports', label: 'Laporan' },
     { href: '/admin/users', label: 'Pengguna' },
 ];
 

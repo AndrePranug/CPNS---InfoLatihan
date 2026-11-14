@@ -49,6 +49,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Attempt::class);
     }
 
+    /** @return HasMany<ForumThread, $this> */
+    public function forumThreads(): HasMany
+    {
+        return $this->hasMany(ForumThread::class);
+    }
+
+    /** @return HasMany<ForumReply, $this> */
+    public function forumReplies(): HasMany
+    {
+        return $this->hasMany(ForumReply::class);
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === Role::Admin;

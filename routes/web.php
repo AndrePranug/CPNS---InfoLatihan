@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\FormationController;
 use App\Http\Controllers\Admin\QuestionController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SubtestController;
 use App\Http\Controllers\Admin\TryoutController as AdminTryoutController;
 use App\Http\Controllers\Admin\UserController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExamController;
+use App\Http\Controllers\ForumController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\ProfileController;
@@ -65,6 +68,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('rankings', [RankingController::class, 'index'])->name('rankings.index');
     Route::get('practice', [PracticeController::class, 'index'])->name('practice.index');
     Route::post('practice/questions/{question}/check', [PracticeController::class, 'check'])->name('practice.check');
+    Route::get('forum', [ForumController::class, 'index'])->name('forum.index');
+    Route::post('forum', [ForumController::class, 'store'])->name('forum.store');
+    Route::get('forum/{thread}', [ForumController::class, 'show'])->name('forum.show');
+    Route::post('forum/{thread}/replies', [ForumController::class, 'reply'])->name('forum.reply');
+    Route::delete('forum/replies/{reply}', [ForumController::class, 'destroyReply'])->name('forum.reply.destroy');
+    Route::delete('forum/{thread}', [ForumController::class, 'destroy'])->name('forum.destroy');
+    Route::patch('forum/{thread}/lock', [ForumController::class, 'toggleLock'])->name('forum.lock');
+    Route::patch('forum/{thread}/pin', [ForumController::class, 'togglePin'])->name('forum.pin');
     Route::get('tryouts', [TryoutController::class, 'index'])->name('tryouts.index');
     Route::get('tryouts/{tryout}', [TryoutController::class, 'show'])->name('tryouts.show');
     Route::get('tryouts/{tryout}/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
@@ -98,6 +109,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::post('vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
     Route::patch('vouchers/{voucher}', [VoucherController::class, 'update'])->name('vouchers.update');
 
+    Route::get('formations', [FormationController::class, 'index'])->name('formations.index');
+    Route::post('formations', [FormationController::class, 'store'])->name('formations.store');
+    Route::patch('formations/{formation}', [FormationController::class, 'update'])->name('formations.update');
+
     Route::get('tryouts', [AdminTryoutController::class, 'index'])->name('tryouts.index');
     Route::post('tryouts', [AdminTryoutController::class, 'store'])->name('tryouts.store');
     Route::get('tryouts/{tryout}', [AdminTryoutController::class, 'edit'])->name('tryouts.edit');
@@ -107,4 +122,7 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     Route::get('users', [UserController::class, 'index'])->name('users.index');
     Route::patch('users/{user}/toggle', [UserController::class, 'toggle'])->name('users.toggle');
+
+    Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('reports/export', [ReportController::class, 'export'])->name('reports.export');
 });

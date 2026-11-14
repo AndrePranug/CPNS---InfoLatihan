@@ -15,19 +15,26 @@ class PracticeController extends Controller
 
     public function index(Request $request): Response
     {
+        $mode = $request->query('mode') === Question::EXAM_SKB ? Question::EXAM_SKB : Question::EXAM_SKD;
         $subtest = $request->query('subtest');
         $topicId = $request->query('topic');
+        $formationId = $request->query('formation');
 
         return Inertia::render('Practice/Index', [
             'questions' => $this->practice->questions(
+                $mode,
                 is_string($subtest) ? $subtest : null,
                 is_numeric($topicId) ? (int) $topicId : null,
+                is_numeric($formationId) ? (int) $formationId : null,
             ),
             'subtests' => $this->practice->subtests(),
             'topics' => $this->practice->topics(),
+            'formations' => $this->practice->formations(),
             'filters' => [
-                'subtest' => $subtest,
-                'topic' => $topicId === null ? null : (int) $topicId,
+                'mode' => $mode,
+                'subtest' => $mode === Question::EXAM_SKD && is_string($subtest) ? $subtest : null,
+                'topic' => $mode === Question::EXAM_SKD && is_numeric($topicId) ? (int) $topicId : null,
+                'formation' => $mode === Question::EXAM_SKB && is_numeric($formationId) ? (int) $formationId : null,
             ],
         ]);
     }

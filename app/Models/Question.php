@@ -10,18 +10,29 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['subtest_id', 'topic_id', 'body', 'image_path', 'explanation', 'difficulty', 'version'])]
+#[Fillable(['exam_type', 'subtest_id', 'formation_id', 'topic_id', 'body', 'image_path', 'explanation', 'difficulty', 'version'])]
 class Question extends Model
 {
     use HasFactory, SoftDeletes;
+
+    public const EXAM_SKD = 'skd';
+
+    public const EXAM_SKB = 'skb';
 
     /**
      * @var array<string, mixed>
      */
     protected $attributes = [
+        'exam_type' => self::EXAM_SKD,
         'difficulty' => 2,
         'version' => 1,
     ];
+
+    /** @return BelongsTo<Formation, $this> */
+    public function formation(): BelongsTo
+    {
+        return $this->belongsTo(Formation::class);
+    }
 
     /** @return BelongsTo<Subtest, $this> */
     public function subtest(): BelongsTo

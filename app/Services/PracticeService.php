@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Formation;
 use App\Models\Question;
 use App\Models\Subtest;
 use App\Models\Topic;
@@ -14,14 +15,23 @@ use Illuminate\Support\Collection;
 class PracticeService
 {
     /**
-     * @return Collection<int, array{id: int, body: string, image_path: string|null, subtest: string, topic: string|null, options: array<int, array{id: int, body: string}>}>
+     * @return Collection<int, array{id: int, body: string, image_path: string|null, label: string, topic: string|null, options: array<int, array{id: int, body: string}>}>
      */
-    public function questions(?string $subtestCode = null, ?int $topicId = null, int $limit = 10): Collection
-    {
+    public function questions(
+        string $mode = Question::EXAM_SKD,
+        ?string $subtestCode = null,
+        ?int $topicId = null,
+        ?int $formationId = null,
+        int $limit = 10,
+    ): Collection {
+        $mode = $mode === Question::EXAM_SKB ? Question::EXAM_SKB : Question::EXAM_SKD;
+
         return Question::query()
-            ->with(['subtest:id,code', 'topic:id,name'])
-            ->when($subtestCode, fn ($query) => $query->whereHas('subtest', fn ($q) => $q->where('code', $subtestCode)))
-            ->when($topicId, fn ($query) => $query->where('topic_id', $topicId))
+            ->with(['subtest:id,code', 'topic:id,name', 'formation:id,name'])
+            ->where('exam_type', $mode)
+            ->when($mode === Question::EXAM_SKD && $subtestCode, fn ($query) => $query->whereHas('subtest', fn ($q) => $q->where('code', $subtestCode)))
+            ->when($mode === Question::EXAM_SKD && $topicId, fn ($query) => $query->where('topic_id', $topicId))
+            ->when($mode === Question::EXAM_SKB && $formationId, fn ($query) => $query->where('formation_id', $formationId))
             ->inRandomOrder()
             ->limit($limit)
             ->get()
@@ -29,7 +39,9 @@ class PracticeService
                 'id' => $question->id,
                 'body' => $question->body,
                 'image_path' => $question->image_path,
-                'subtest' => $question->subtest->code->value,
+                'label' => $mode === Question::EXAM_SKB
+                    ? ($question->formation?->name ?? 'SKB')
+                    : $question->subtest->code->value,
                 'topic' => $question->topic?->name,
                 'options' => $question->options()
                     ->orderBy('label')
@@ -67,7 +79,7 @@ class PracticeService
     public function subtests(): Collection
     {
         return Subtest::query()
-            ->withCount('questions')
+            ->withCount(['questions' => fn ($query) => $query->where('exam_type', Question::EXAM_SKD)])
             ->orderBy('id')
             ->get()
             ->map(fn (Subtest $subtest): array => [
@@ -84,8 +96,8 @@ class PracticeService
     {
         return Topic::query()
             ->with('subtest:id,code')
-            ->withCount('questions')
-            ->whereHas('questions')
+            ->withCount(['questions' => fn ($query) => $query->where('exam_type', Question::EXAM_SKD)])
+            ->whereHas('questions', fn ($query) => $query->where('exam_type', Question::EXAM_SKD))
             ->orderBy('subtest_id')
             ->get()
             ->map(fn (Topic $topic): array => [
@@ -93,6 +105,23 @@ class PracticeService
                 'name' => $topic->name,
                 'subtest' => $topic->subtest->code->value,
                 'question_count' => $topic->questions_count,
+            ]);
+    }
+
+    /**
+     * @return Collection<int, array{id: int, name: string, question_count: int}>
+     */
+    public function formations(): Collection
+    {
+        return Formation::query()
+            ->where('is_active', true)
+            ->withCount(['questions' => fn ($query) => $query->where('exam_type', Question::EXAM_SKB)])
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Formation $formation): array => [
+                'id' => $formation->id,
+                'name' => $formation->name,
+                'question_count' => $formation->questions_count,
             ]);
     }
 }

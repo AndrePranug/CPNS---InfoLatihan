@@ -90,15 +90,14 @@ Ganti kredensial ini sebelum dipakai di produksi.
 ## Test
 
 ```bash
-php artisan test --compact    # 88 test, 437 assertion
+php artisan test --compact    # 97 test, 518 assertion
 vendor/bin/pint --format agent
 ```
 
 ## Status Pengembangan
 
-Seluruh kebutuhan **P0/P1** PRD (FR-01 – FR-35) sudah selesai. Yang belum:
+Seluruh kebutuhan **P0/P1** PRD (FR-01 – FR-35) dan fitur **Fase 3** (latihan SKB per formasi, forum diskusi, PWA, laporan mitra bimbel + ekspor CSV) sudah selesai. Yang belum:
 
 - **FR-36 / Fase 2** — inti pembayaran, voucher, peringkat nasional, dan email hasil selesai. Yang tersisa hanya adapter gateway Midtrans/Xendit; saat ini `PAYMENT_ENABLED=false`.
-- **Fase 3** — latihan SKB, forum, PWA, laporan mitra bimbel.
 
 Rincian progres, arsitektur, dan catatan teknis ada di [`PROGRESS.md`](PROGRESS.md).

@@ -7,6 +7,7 @@ import RichTextEditor from '@/Components/RichTextEditor.vue';
 const props = defineProps({
     subtests: { type: Array, required: true },
     topics: { type: Array, required: true },
+    formations: { type: Array, required: true },
     question: { type: Object, default: null },
 });
 
@@ -14,7 +15,9 @@ const letters = ['A', 'B', 'C', 'D', 'E'];
 const isEdit = computed(() => props.question !== null);
 
 const form = useForm({
+    exam_type: props.question?.exam_type ?? 'skd',
     subtest_id: props.question?.subtest_id ?? props.subtests[0]?.id ?? null,
+    formation_id: props.question?.formation_id ?? null,
     topic_id: props.question?.topic_id ?? null,
     body: props.question?.body ?? '',
     explanation: props.question?.explanation ?? '',
@@ -23,8 +26,9 @@ const form = useForm({
         .map((option) => ({ ...option })),
 });
 
+const isSkb = computed(() => form.exam_type === 'skb');
 const selectedSubtest = computed(() => props.subtests.find((s) => s.id === Number(form.subtest_id)));
-const isTkp = computed(() => selectedSubtest.value?.code === 'TKP');
+const isTkp = computed(() => !isSkb.value && selectedSubtest.value?.code === 'TKP');
 const filteredTopics = computed(() => props.topics.filter((t) => t.subtest_id === Number(form.subtest_id)));
 
 const imageForm = useForm({ image: null });
@@ -65,19 +69,36 @@ const submit = () => {
             <div class="space-y-4 rounded-2xl border border-line bg-white p-6 shadow-card">
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
+                        <label for="exam_type" class="mb-1 block text-sm font-medium">Jenis soal</label>
+                        <select id="exam_type" v-model="form.exam_type" class="h-11 w-full rounded-xl border border-line bg-white px-3">
+                            <option value="skd">SKD</option>
+                            <option value="skb">SKB</option>
+                        </select>
+                        <p v-if="form.errors.exam_type" class="mt-1 text-xs text-danger">{{ form.errors.exam_type }}</p>
+                    </div>
+                    <div v-if="isSkb">
+                        <label for="formation" class="mb-1 block text-sm font-medium">Formasi SKB</label>
+                        <select id="formation" v-model="form.formation_id" class="h-11 w-full rounded-xl border border-line bg-white px-3">
+                            <option :value="null">— pilih formasi —</option>
+                            <option v-for="formation in formations" :key="formation.id" :value="formation.id">{{ formation.name }}</option>
+                        </select>
+                        <p v-if="form.errors.formation_id" class="mt-1 text-xs text-danger">{{ form.errors.formation_id }}</p>
+                    </div>
+                    <div v-else>
                         <label for="subtest" class="mb-1 block text-sm font-medium">Subtes</label>
                         <select id="subtest" v-model="form.subtest_id" class="h-11 w-full rounded-xl border border-line bg-white px-3">
                             <option v-for="subtest in subtests" :key="subtest.id" :value="subtest.id">{{ subtest.code }} — {{ subtest.name }}</option>
                         </select>
                         <p v-if="form.errors.subtest_id" class="mt-1 text-xs text-danger">{{ form.errors.subtest_id }}</p>
                     </div>
-                    <div>
-                        <label for="topic" class="mb-1 block text-sm font-medium">Topik</label>
-                        <select id="topic" v-model="form.topic_id" class="h-11 w-full rounded-xl border border-line bg-white px-3">
-                            <option :value="null">— tanpa topik —</option>
-                            <option v-for="topic in filteredTopics" :key="topic.id" :value="topic.id">{{ topic.name }}</option>
-                        </select>
-                    </div>
+                </div>
+
+                <div v-if="!isSkb">
+                    <label for="topic" class="mb-1 block text-sm font-medium">Topik</label>
+                    <select id="topic" v-model="form.topic_id" class="h-11 w-full rounded-xl border border-line bg-white px-3">
+                        <option :value="null">— tanpa topik —</option>
+                        <option v-for="topic in filteredTopics" :key="topic.id" :value="topic.id">{{ topic.name }}</option>
+                    </select>
                 </div>
 
                 <div>

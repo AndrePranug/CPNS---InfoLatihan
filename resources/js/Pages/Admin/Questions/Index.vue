@@ -53,7 +53,8 @@ const destroy = (id) => {
                 <thead class="sticky top-0 bg-white text-left text-xs text-ink-400">
                     <tr>
                         <th class="p-3">Soal</th>
-                        <th class="p-3">Subtes</th>
+                        <th class="p-3">Jenis</th>
+                        <th class="p-3">Subtes / Formasi</th>
                         <th class="p-3">Topik</th>
                         <th class="p-3">Versi</th>
                         <th class="p-3 text-right">Aksi</th>
@@ -62,7 +63,8 @@ const destroy = (id) => {
                 <tbody>
                     <tr v-for="question in questions.data" :key="question.id" class="h-12 border-t border-line">
                         <td class="max-w-md truncate p-3">{{ question.body }}</td>
-                        <td class="p-3 font-semibold">{{ question.subtest }}</td>
+                        <td class="p-3 font-semibold uppercase">{{ question.exam_type }}</td>
+                        <td class="p-3 font-semibold">{{ question.exam_type === 'skb' ? (question.formation ?? '—') : question.subtest }}</td>
                         <td class="p-3 text-ink-600">{{ question.topic ?? '—' }}</td>
                         <td class="p-3 tabular-nums">{{ question.version }}</td>
                         <td class="p-3 text-right">
@@ -71,7 +73,7 @@ const destroy = (id) => {
                         </td>
                     </tr>
                     <tr v-if="questions.data.length === 0">
-                        <td colspan="5" class="p-8 text-center text-ink-600">Belum ada soal.</td>
+                        <td colspan="6" class="p-8 text-center text-ink-600">Belum ada soal.</td>
                     </tr>
                 </tbody>
             </table>

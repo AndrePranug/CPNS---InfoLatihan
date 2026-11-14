@@ -10,7 +10,7 @@ Terakhir diperbarui: **14 November 2026**
 
 - Stack: **Laravel 13.40 · Inertia 3.7 · Vue 3 · Tailwind v4 · Vite 8 · MySQL 8.3**
 - Database: `cpns` (dev) dan `cpns_testing` (test), user `root` tanpa password (Laragon)
-- Test: **88 test, 437 assertion — semua lulus** di MySQL
+- Test: **97 test, 518 assertion — semua lulus** di MySQL
 - Sumber spesifikasi: `PRD Web Latihan CPNS.md` dan `design (3).md`
 
 ---
@@ -75,6 +75,13 @@ Aturan bisnis PRD yang sudah diterapkan:
 - Satu attempt aktif per user per paket.
 - Soal & pilihan diacak per attempt, deterministik (`ExamOrderService`), kunci tidak dikirim sebelum submit.
 
+Fitur Fase 3 (roadmap PRD):
+
+- **Latihan SKB per formasi** — tabel `formations`; `questions.exam_type` (`skd`/`skb`) + `formation_id`; `subtest_id` nullable untuk soal SKB. Latihan bebas `/practice?mode=skb&formation=ID`, admin `/admin/formations`.
+- **Forum diskusi** — thread + balasan; pemilik/admin boleh hapus, admin boleh kunci & sematkan.
+- **PWA** — `public/manifest.webmanifest`, `public/sw.js`, `public/offline.html`, ikon 192/512; service worker didaftarkan hanya di build produksi.
+- **Laporan mitra bimbel** — `/admin/reports` (ringkasan, rekap peserta, rekap paket) + ekspor CSV per peserta/periode.
+
 ---
 
 ## 4. Yang Sudah Dibangun
@@ -111,6 +118,20 @@ Aturan bisnis PRD yang sudah diterapkan:
 ### Latihan (FR-19)
 - `PracticeService` — soal acak stateless + `check()` yang mengembalikan kunci hanya setelah dijawab.
 - `Practice/Index.vue` — tanpa timer, filter subtes/topik, feedback instan + pembahasan, hitung benar/salah, "Soal baru".
+- Mode **SKB**: filter per formasi, tanpa subtes/topik, label soal memakai nama formasi.
+
+### Forum diskusi
+- `ForumController` + `Forum/Index.vue`, `Forum/Show.vue` — buat diskusi, balas, hapus (pemilik/admin), kunci & sematkan (admin), paginasi.
+- Tabel `forum_threads`, `forum_replies`; thread terkunci menolak balasan baru.
+
+### PWA
+- `manifest.webmanifest` (nama, tema `#1d6ff2`, ikon 192/512 `any maskable`), `theme-color` + `apple-touch-icon` di `app.blade.php`.
+- `sw.js` — network-first untuk navigasi dengan fallback `offline.html`, cache-first untuk `/build/` dan `/icons/`, melewati request Inertia/XHR; versi cache `latihan-cpns-v1`.
+- Registrasi service worker hanya `import.meta.env.PROD` di `app.js`.
+
+### Laporan mitra
+- `Admin/ReportController` + `Admin/Reports/Index.vue` — rentang tanggal (default 30 hari), ringkasan peserta/percobaan/rata-rata/lulus, rekap per peserta (maks. 100 di layar) dan per paket.
+- Ekspor CSV `laporan-mitra-{from}-{to}.csv` berisi seluruh peserta pada rentang tersebut.
 
 ### Admin
 - `Admin/Dashboard.vue` — statistik + **soal paling sering salah**.
@@ -126,7 +147,7 @@ Aturan bisnis PRD yang sudah diterapkan:
 - Adapter gateway (redirect + webhook) **belum dibuat** — ditandai komentar `ponytail:` di `PaymentService::createOrder`.
 
 ### Database
-Tabel: `users` (+`role`, `google_id`, `is_active`), `subtests`, `topics`, `questions`, `options`, `tryouts`, `tryout_question`, `attempts`, `attempt_answers`, `daily_activities`, `orders`, `vouchers`, plus tabel bawaan Laravel.
+Tabel: `users` (+`role`, `google_id`, `is_active`), `subtests`, `topics`, `formations`, `questions` (+`exam_type`, `formation_id`), `options`, `tryouts`, `tryout_question`, `attempts`, `attempt_answers`, `daily_activities`, `orders`, `vouchers`, `forum_threads`, `forum_replies`, plus tabel bawaan Laravel.
 
 ---
 
@@ -139,7 +160,7 @@ app/Services/
   ReviewService.php        # pembahasan hasil
   ExamOrderService.php     # pengacakan deterministik
   ProgressService.php      # target harian, streak, peringkat
-  PracticeService.php      # latihan tanpa timer (stateless)
+  PracticeService.php      # latihan tanpa timer (SKD/SKB, stateless)
   PaymentService.php       # akses paket, voucher, order, markPaid
   QuestionImportService.php  QuestionVersionService.php
 
@@ -147,24 +168,31 @@ app/Http/Controllers/
   DashboardController.php  ProgressController.php  HistoryController.php
   RankingController.php    ResultController.php    ProfileController.php
   ExamController.php       TryoutController.php    CheckoutController.php
-  PracticeController.php
-  Admin/{Dashboard,Question,Tryout,Subtest,User,Voucher}Controller.php
+  PracticeController.php   ForumController.php
+  Admin/{Dashboard,Question,Tryout,Subtest,User,Voucher,Formation,Report}Controller.php
   Auth/{AuthenticatedSession,RegisteredUser,Google,EmailVerification,
         PasswordResetLink,NewPassword}Controller.php
 
 app/Notifications/
   AttemptResultNotification.php
 
+app/Models/
+  Formation.php  ForumThread.php  ForumReply.php
+
+public/
+  manifest.webmanifest  sw.js  offline.html  icons/icon-{192,512}.png
+
 resources/js/Pages/
   Dashboard.vue  Progress/Index.vue  Rankings/Index.vue  History/Index.vue
-  Practice/Index.vue
+  Practice/Index.vue  Forum/{Index,Show}.vue
   Tryouts/{Index,Show}.vue  Checkout.vue  Exam/Attempt.vue  Results/Show.vue
   Profile/Edit.vue
   Auth/{Login,Register,VerifyEmail,ForgotPassword,ResetPassword}.vue
-  Admin/{Dashboard,Questions/*,Tryouts/*,Vouchers/*,Subtests/*,Users/*}.vue
+  Admin/{Dashboard,Questions/*,Tryouts/*,Vouchers/*,Subtests/*,Users/*,
+        Formations/*,Reports/*}.vue
 
-routes/web.php             # 56 route
-tests/Feature/             # 88 test
+routes/web.php             # 69 route
+tests/Feature/             # 97 test
 ```
 
 ---
@@ -173,8 +201,9 @@ tests/Feature/             # 88 test
 
 Urutan usulan, dari yang paling berdampak:
 
-1. **Fase 2** — adapter gateway Midtrans/Xendit (order + voucher + peringkat nasional + email hasil sudah siap; flag `PAYMENT_ENABLED=false`).
-2. **Fase 3** — latihan SKB, forum, PWA, laporan mitra bimbel.
+1. **Adapter gateway Midtrans/Xendit** (FR-36) — order + voucher + peringkat nasional + email hasil sudah siap; flag `PAYMENT_ENABLED=false`.
+
+Fase 3 (SKB, forum, PWA, laporan mitra) sudah selesai.
 
 Perbaikan kecil yang tertunda:
 
@@ -199,6 +228,9 @@ Perbaikan kecil yang tertunda:
 - Voucher menyimpan pemakaian di `used_count`; increment hanya saat `PaymentService::markPaid` dan idempoten untuk order yang sudah lunas.
 - Email hasil tryout memakai antrean `database` (`ShouldQueue`). Jalankan `php artisan queue:work` agar email terkirim; dengan `MAIL_MAILER=log` isinya masuk `storage/logs/laravel.log`.
 - Peringkat nasional memakai skor terbaik per pengguna dan hanya menghitung pengguna aktif (`users.is_active`).
+- Soal SKB: `questions.subtest_id` nullable dan `formation_id` wajib. Semua query SKD (editor paket, statistik subtes/topik) harus memfilter `exam_type = 'skd'`; `PracticeService` memfilter `exam_type` sesuai mode.
+- Service worker hanya aktif pada build produksi. Naikkan versi `CACHE` di `public/sw.js` saat mengubah aset pre-cache agar cache lama dibersihkan.
+- `StoreQuestionRequest` mengisi `exam_type = 'skd'` bila tidak dikirim, sehingga klien lama tetap kompatibel.
 
 ---
 
