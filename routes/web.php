@@ -19,6 +19,7 @@ use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\PracticeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProgressController;
+use App\Http\Controllers\RankingController;
 use App\Http\Controllers\ResultController;
 use App\Http\Controllers\TryoutController;
 use Illuminate\Support\Facades\Route;
@@ -61,6 +62,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('history', [HistoryController::class, 'index'])->name('history.index');
     Route::get('progress', [ProgressController::class, 'index'])->name('progress.index');
+    Route::get('rankings', [RankingController::class, 'index'])->name('rankings.index');
     Route::get('practice', [PracticeController::class, 'index'])->name('practice.index');
     Route::post('practice/questions/{question}/check', [PracticeController::class, 'check'])->name('practice.check');
     Route::get('tryouts', [TryoutController::class, 'index'])->name('tryouts.index');

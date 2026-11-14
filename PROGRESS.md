@@ -10,7 +10,7 @@ Terakhir diperbarui: **14 November 2026**
 
 - Stack: **Laravel 13.40 · Inertia 3.7 · Vue 3 · Tailwind v4 · Vite 8 · MySQL 8.3**
 - Database: `cpns` (dev) dan `cpns_testing` (test), user `root` tanpa password (Laragon)
-- Test: **85 test, 415 assertion — semua lulus** di MySQL
+- Test: **88 test, 437 assertion — semua lulus** di MySQL
 - Sumber spesifikasi: `PRD Web Latihan CPNS.md` dan `design (3).md`
 
 ---
@@ -67,7 +67,7 @@ Catatan lingkungan:
 | FR-33 | CRUD paket: pilih soal, durasi, PG, jadwal, harga | P0 | **Selesai** |
 | FR-34 | Manajemen pengguna | P0 | **Selesai** |
 | FR-35 | Dasbor statistik admin | P1 | **Selesai** |
-| FR-36 | Pembayaran & voucher | P2 | **Sebagian** — order + voucher siap; gateway mati (`PAYMENT_ENABLED=false`) sampai akun Midtrans/Xendit ada |
+| FR-36 | Pembayaran & voucher | P2 | **Sebagian** — order, voucher, peringkat nasional, email hasil siap; adapter gateway mati (`PAYMENT_ENABLED=false`) |
 
 Aturan bisnis PRD yang sudah diterapkan:
 
@@ -101,10 +101,12 @@ Aturan bisnis PRD yang sudah diterapkan:
 
 ### Progres & gamifikasi ringan
 - Tabel `daily_activities` + kolom `attempts.daily_activity_recorded`.
-- `ProgressService` — `record`, `recordAttempt`, `dailyGoal`, `streak`, `leaderboard` (semua/minggu/bulan), `missions`, `tryoutRanking`, `resumeAttempt`.
+- `ProgressService` — `record`, `recordAttempt`, `dailyGoal`, `streak`, `leaderboard` (semua/minggu/bulan), `nationalRanking`, `missions`, `tryoutRanking`, `resumeAttempt`.
 - `Dashboard.vue` — hero sapaan, kartu lanjutkan, kartu subtes, target harian (cincin SVG), streak, peringkat dengan tab **Minggu ini / Bulan ini**, kartu **Misi minggu ini** (3 tryout, 50 soal, 100 menit).
 - `Progress/Index.vue` — ringkasan, grafik skor bertumpuk 20 attempt, topik terlemah, menit belajar 14 hari.
 - `History/Index.vue` — riwayat + tren skor.
+- `Rankings/Index.vue` — peringkat nasional semua peserta dengan tab minggu ini / bulan ini / semua waktu, posisi pengguna, dan sorotan baris sendiri.
+- `AttemptResultNotification` — email hasil tryout (skor, status PG, tautan pembahasan) dikirim sekali saat attempt selesai dinilai; antrean `database`, jalankan `php artisan queue:work`.
 
 ### Latihan (FR-19)
 - `PracticeService` — soal acak stateless + `check()` yang mengembalikan kunci hanya setelah dijawab.
@@ -139,26 +141,30 @@ app/Services/
   ProgressService.php      # target harian, streak, peringkat
   PracticeService.php      # latihan tanpa timer (stateless)
   PaymentService.php       # akses paket, voucher, order, markPaid
-  QuestionImportService.php
-  QuestionVersionService.php
+  QuestionImportService.php  QuestionVersionService.php
 
 app/Http/Controllers/
   DashboardController.php  ProgressController.php  HistoryController.php
-  ExamController.php       ResultController.php    ProfileController.php
-  PracticeController.php   TryoutController.php    CheckoutController.php
+  RankingController.php    ResultController.php    ProfileController.php
+  ExamController.php       TryoutController.php    CheckoutController.php
+  PracticeController.php
   Admin/{Dashboard,Question,Tryout,Subtest,User,Voucher}Controller.php
   Auth/{AuthenticatedSession,RegisteredUser,Google,EmailVerification,
         PasswordResetLink,NewPassword}Controller.php
 
+app/Notifications/
+  AttemptResultNotification.php
+
 resources/js/Pages/
-  Dashboard.vue  Progress/Index.vue  History/Index.vue  Practice/Index.vue
+  Dashboard.vue  Progress/Index.vue  Rankings/Index.vue  History/Index.vue
+  Practice/Index.vue
   Tryouts/{Index,Show}.vue  Checkout.vue  Exam/Attempt.vue  Results/Show.vue
   Profile/Edit.vue
   Auth/{Login,Register,VerifyEmail,ForgotPassword,ResetPassword}.vue
   Admin/{Dashboard,Questions/*,Tryouts/*,Vouchers/*,Subtests/*,Users/*}.vue
 
-routes/web.php             # 55 route
-tests/Feature/             # 85 test
+routes/web.php             # 56 route
+tests/Feature/             # 88 test
 ```
 
 ---
@@ -167,7 +173,7 @@ tests/Feature/             # 85 test
 
 Urutan usulan, dari yang paling berdampak:
 
-1. **Fase 2** — adapter gateway Midtrans/Xendit (order + voucher sudah siap; flag `PAYMENT_ENABLED=false`), peringkat nasional, notifikasi email.
+1. **Fase 2** — adapter gateway Midtrans/Xendit (order + voucher + peringkat nasional + email hasil sudah siap; flag `PAYMENT_ENABLED=false`).
 2. **Fase 3** — latihan SKB, forum, PWA, laporan mitra bimbel.
 
 Perbaikan kecil yang tertunda:
@@ -191,6 +197,8 @@ Perbaikan kecil yang tertunda:
 - Impor `.xlsx` butuh ekstensi PHP **`zip`** aktif (`php.ini` Laragon baris `extension=zip`). Tanpa itu PhpSpreadsheet gagal membaca Excel.
 - Pembayaran default mati: `PAYMENT_ENABLED=false`, `PAYMENT_GATEWAY=none`. Jangan ubah ke `true` sebelum adapter gateway (redirect + webhook) dan kredensial tersedia; order hanya akan tertahan di `pending`.
 - Voucher menyimpan pemakaian di `used_count`; increment hanya saat `PaymentService::markPaid` dan idempoten untuk order yang sudah lunas.
+- Email hasil tryout memakai antrean `database` (`ShouldQueue`). Jalankan `php artisan queue:work` agar email terkirim; dengan `MAIL_MAILER=log` isinya masuk `storage/logs/laravel.log`.
+- Peringkat nasional memakai skor terbaik per pengguna dan hanya menghitung pengguna aktif (`users.is_active`).
 
 ---
 

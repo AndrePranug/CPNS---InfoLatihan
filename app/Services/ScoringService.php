@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Attempt;
 use App\Models\Subtest;
+use App\Notifications\AttemptResultNotification;
 use Illuminate\Support\Collection;
 
 class ScoringService
@@ -15,6 +16,8 @@ class ScoringService
      */
     public function submit(Attempt $attempt): array
     {
+        $wasSubmitted = $attempt->submitted_at !== null;
+
         $attempt->load('answers.option', 'answers.question.subtest');
 
         $scores = ['TWK' => 0, 'TIU' => 0, 'TKP' => 0];
@@ -44,6 +47,10 @@ class ScoringService
             'total_score' => $scores['TWK'] + $scores['TIU'] + $scores['TKP'],
             'is_passed' => $passed,
         ]);
+
+        if (! $wasSubmitted) {
+            $attempt->user->notify(new AttemptResultNotification($attempt));
+        }
 
         return [
             'twk' => $scores['TWK'],

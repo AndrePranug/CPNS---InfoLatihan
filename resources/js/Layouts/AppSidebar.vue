@@ -11,6 +11,7 @@ const items = [
     { href: '/tryouts', label: 'Tryout' },
     { href: '/practice', label: 'Latihan' },
     { href: '/progress', label: 'Progres' },
+    { href: '/rankings', label: 'Peringkat' },
     { href: '/history', label: 'Riwayat' },
 ];
 

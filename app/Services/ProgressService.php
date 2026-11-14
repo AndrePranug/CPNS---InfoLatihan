@@ -129,6 +129,34 @@ class ProgressService
     }
 
     /**
+     * National all-participant ranking by best score, with the current user's position.
+     *
+     * @param  'all'|'week'|'month'  $period
+     * @return array{period: string, total: int, position: int|null, score: int, rows: Collection<int, array{position: int, name: string, score: int, is_me: bool}>}
+     */
+    public function nationalRanking(User $user, string $period = 'all', int $limit = 50): array
+    {
+        $rows = $this->bestScoresPerUser($period)
+            ->values()
+            ->map(fn (object $row, int $index): array => [
+                'position' => $index + 1,
+                'name' => $row->name,
+                'score' => (int) $row->best_score,
+                'is_me' => $row->user_id === $user->id,
+            ]);
+
+        $me = $rows->firstWhere('is_me', true);
+
+        return [
+            'period' => $period,
+            'total' => $rows->count(),
+            'position' => $me['position'] ?? null,
+            'score' => $me['score'] ?? 0,
+            'rows' => $rows->take($limit)->values(),
+        ];
+    }
+
+    /**
      * Weekly missions derived from existing activity; no rewards are claimed or stored.
      *
      * @return array<int, array{key: string, label: string, current: int, target: int, done: bool}>
@@ -172,11 +200,13 @@ class ProgressService
         // ponytail: one query per call; add cache if dashboard gets hot.
         return DB::table('attempts')
             ->join('users', 'users.id', '=', 'attempts.user_id')
+            ->where('users.is_active', true)
             ->whereNotNull('attempts.submitted_at')
             ->when($period === 'week', fn ($query) => $query->where('attempts.submitted_at', '>=', now()->startOfWeek()))
             ->when($period === 'month', fn ($query) => $query->where('attempts.submitted_at', '>=', now()->startOfMonth()))
             ->groupBy('attempts.user_id', 'users.name')
             ->orderByDesc('best_score')
+            ->orderBy('users.name')
             ->get([
                 'attempts.user_id',
                 'users.name',
