@@ -2,7 +2,7 @@
 
 Status proyek **Latihan CPNS — Simulasi SKD**. Dokumen ini sumber kebenaran progres: apa yang sudah jadi, apa yang belum, dan langkah berikutnya.
 
-Terakhir diperbarui: **13 November 2026**
+Terakhir diperbarui: **14 November 2026**
 
 ---
 
@@ -10,7 +10,7 @@ Terakhir diperbarui: **13 November 2026**
 
 - Stack: **Laravel 13.40 · Inertia 3.7 · Vue 3 · Tailwind v4 · Vite 8 · MySQL 8.3**
 - Database: `cpns` (dev) dan `cpns_testing` (test), user `root` tanpa password (Laragon)
-- Test: **77 test, 362 assertion — semua lulus** di MySQL
+- Test: **85 test, 415 assertion — semua lulus** di MySQL
 - Sumber spesifikasi: `PRD Web Latihan CPNS.md` dan `design (3).md`
 
 ---
@@ -67,7 +67,7 @@ Catatan lingkungan:
 | FR-33 | CRUD paket: pilih soal, durasi, PG, jadwal, harga | P0 | **Selesai** |
 | FR-34 | Manajemen pengguna | P0 | **Selesai** |
 | FR-35 | Dasbor statistik admin | P1 | **Selesai** |
-| FR-36 | Pembayaran & voucher | P2 | **Belum** (Fase 2) |
+| FR-36 | Pembayaran & voucher | P2 | **Sebagian** — order + voucher siap; gateway mati (`PAYMENT_ENABLED=false`) sampai akun Midtrans/Xendit ada |
 
 Aturan bisnis PRD yang sudah diterapkan:
 
@@ -115,9 +115,16 @@ Aturan bisnis PRD yang sudah diterapkan:
 - Bank soal: index, form dengan editor teks kaya (Quill), edit/versi (`QuestionVersionService`), impor CSV/Excel (`QuestionImportService`), unggah gambar soal (`POST /admin/questions/{question}/image`, disk `public`, maks 2 MB).
 - Paket tryout: index, editor isi paket (`Admin/Tryouts/Edit.vue` — pilih/urutkan soal), pengaturan paket (judul, deskripsi, durasi, harga, jadwal buka/tutup, terbit).
 - Subtes & passing grade, manajemen pengguna (aktif/nonaktif).
+- Voucher: `Admin/Vouchers/Index.vue` — kode, potongan persen/nominal, maks. pemakaian, kedaluwarsa, aktif/nonaktif.
+
+### Pembayaran & voucher (FR-36, flag mati)
+- `PaymentService` — cek akses (gratis atau order `paid`), validasi voucher, kuotasi diskon, pembuatan order `pending`, `markPaid` idempoten + increment pemakaian voucher.
+- `CheckoutController` + `Checkout.vue` — ringkasan harga, input voucher, pesanan menunggu pembayaran. Saat `PAYMENT_ENABLED=false` halaman menampilkan pesan bahwa pembayaran dinonaktifkan dan tombol mulai untuk paket berbayar ditolak.
+- `ExamController::start` memblokir paket berbayar tanpa order lunas; pengguna dengan order `paid` tetap bisa mulai meski gateway mati.
+- Adapter gateway (redirect + webhook) **belum dibuat** — ditandai komentar `ponytail:` di `PaymentService::createOrder`.
 
 ### Database
-Tabel: `users` (+`role`, `google_id`, `is_active`), `subtests`, `topics`, `questions`, `options`, `tryouts`, `tryout_question`, `attempts`, `attempt_answers`, `daily_activities`, plus tabel bawaan Laravel.
+Tabel: `users` (+`role`, `google_id`, `is_active`), `subtests`, `topics`, `questions`, `options`, `tryouts`, `tryout_question`, `attempts`, `attempt_answers`, `daily_activities`, `orders`, `vouchers`, plus tabel bawaan Laravel.
 
 ---
 
@@ -131,26 +138,27 @@ app/Services/
   ExamOrderService.php     # pengacakan deterministik
   ProgressService.php      # target harian, streak, peringkat
   PracticeService.php      # latihan tanpa timer (stateless)
+  PaymentService.php       # akses paket, voucher, order, markPaid
   QuestionImportService.php
   QuestionVersionService.php
 
 app/Http/Controllers/
   DashboardController.php  ProgressController.php  HistoryController.php
   ExamController.php       ResultController.php    ProfileController.php
-  PracticeController.php   TryoutController.php
-  Admin/{Dashboard,Question,Tryout,Subtest,User}Controller.php
+  PracticeController.php   TryoutController.php    CheckoutController.php
+  Admin/{Dashboard,Question,Tryout,Subtest,User,Voucher}Controller.php
   Auth/{AuthenticatedSession,RegisteredUser,Google,EmailVerification,
         PasswordResetLink,NewPassword}Controller.php
 
 resources/js/Pages/
   Dashboard.vue  Progress/Index.vue  History/Index.vue  Practice/Index.vue
-  Tryouts/{Index,Show}.vue  Exam/Attempt.vue  Results/Show.vue
+  Tryouts/{Index,Show}.vue  Checkout.vue  Exam/Attempt.vue  Results/Show.vue
   Profile/Edit.vue
   Auth/{Login,Register,VerifyEmail,ForgotPassword,ResetPassword}.vue
-  Admin/{Dashboard,Questions/*,Tryouts/*,Subtests/*,Users/*}.vue
+  Admin/{Dashboard,Questions/*,Tryouts/*,Vouchers/*,Subtests/*,Users/*}.vue
 
-routes/web.php             # 50 route
-tests/Feature/             # 77 test
+routes/web.php             # 55 route
+tests/Feature/             # 85 test
 ```
 
 ---
@@ -159,7 +167,7 @@ tests/Feature/             # 77 test
 
 Urutan usulan, dari yang paling berdampak:
 
-1. **Fase 2** — pembayaran (Midtrans/Xendit), kode voucher, peringkat nasional, notifikasi email.
+1. **Fase 2** — adapter gateway Midtrans/Xendit (order + voucher sudah siap; flag `PAYMENT_ENABLED=false`), peringkat nasional, notifikasi email.
 2. **Fase 3** — latihan SKB, forum, PWA, laporan mitra bimbel.
 
 Perbaikan kecil yang tertunda:
@@ -181,6 +189,8 @@ Perbaikan kecil yang tertunda:
 - `ExamOrderService::shuffle` butuh `Attempt` yang sudah tersimpan (pakai `id`), jangan dipanggil sebelum insert.
 - Teks kaya disanitasi di server (`App\Services\HtmlSanitizer`, allowlist tag) sebelum disimpan; halaman ujian/latihan/hasil baru boleh memakai `v-html`.
 - Impor `.xlsx` butuh ekstensi PHP **`zip`** aktif (`php.ini` Laragon baris `extension=zip`). Tanpa itu PhpSpreadsheet gagal membaca Excel.
+- Pembayaran default mati: `PAYMENT_ENABLED=false`, `PAYMENT_GATEWAY=none`. Jangan ubah ke `true` sebelum adapter gateway (redirect + webhook) dan kredensial tersedia; order hanya akan tertahan di `pending`.
+- Voucher menyimpan pemakaian di `used_count`; increment hanya saat `PaymentService::markPaid` dan idempoten untuk order yang sudah lunas.
 
 ---
 

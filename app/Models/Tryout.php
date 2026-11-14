@@ -23,6 +23,7 @@ class Tryout extends Model
     protected function casts(): array
     {
         return [
+            'price' => 'integer',
             'opens_at' => 'datetime',
             'closes_at' => 'datetime',
             'is_published' => 'boolean',

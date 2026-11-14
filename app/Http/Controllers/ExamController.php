@@ -5,19 +5,34 @@ namespace App\Http\Controllers;
 use App\Models\Attempt;
 use App\Models\Tryout;
 use App\Services\ExamService;
+use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ExamController extends Controller
 {
-    public function __construct(private readonly ExamService $exam) {}
+    public function __construct(
+        private readonly ExamService $exam,
+        private readonly PaymentService $payments,
+    ) {}
 
     public function start(Request $request, Tryout $tryout): RedirectResponse
     {
         abort_unless($tryout->isOpen(), 404);
+
+        if (! $this->payments->hasAccess($request->user(), $tryout)) {
+            if (! $this->payments->available()) {
+                throw ValidationException::withMessages([
+                    'attempt' => 'Paket ini berbayar dan pembayaran sedang dinonaktifkan. Coba lagi nanti.',
+                ]);
+            }
+
+            return redirect()->route('checkout.show', $tryout);
+        }
 
         $attempt = $this->exam->start($request->user(), $tryout);
 

@@ -5,12 +5,14 @@ use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\SubtestController;
 use App\Http\Controllers\Admin\TryoutController as AdminTryoutController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\HistoryController;
@@ -63,6 +65,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('practice/questions/{question}/check', [PracticeController::class, 'check'])->name('practice.check');
     Route::get('tryouts', [TryoutController::class, 'index'])->name('tryouts.index');
     Route::get('tryouts/{tryout}', [TryoutController::class, 'show'])->name('tryouts.show');
+    Route::get('tryouts/{tryout}/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+    Route::post('tryouts/{tryout}/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
 
     Route::post('tryouts/{tryout}/start', [ExamController::class, 'start'])->name('exam.start');
     Route::get('attempts/{attempt}', [ExamController::class, 'show'])->name('exam.show');
@@ -87,6 +91,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
 
     Route::get('subtests', [SubtestController::class, 'index'])->name('subtests.index');
     Route::patch('subtests/{subtest}', [SubtestController::class, 'update'])->name('subtests.update');
+
+    Route::get('vouchers', [VoucherController::class, 'index'])->name('vouchers.index');
+    Route::post('vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
+    Route::patch('vouchers/{voucher}', [VoucherController::class, 'update'])->name('vouchers.update');
 
     Route::get('tryouts', [AdminTryoutController::class, 'index'])->name('tryouts.index');
     Route::post('tryouts', [AdminTryoutController::class, 'store'])->name('tryouts.store');
