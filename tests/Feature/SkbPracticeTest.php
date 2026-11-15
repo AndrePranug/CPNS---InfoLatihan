@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Formation;
 use App\Models\Option;
 use App\Models\Question;
+use App\Models\Subtest;
+use App\Models\Topic;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -21,7 +23,21 @@ class SkbPracticeTest extends TestCase
 
         $skbGuru = $this->skbQuestion($guru, 'Soal SKB guru?');
         $this->skbQuestion($kesehatan, 'Soal SKB kesehatan?');
-        Question::factory()->create(['body' => 'Soal SKD?', 'exam_type' => 'skd']);
+
+        $subtest = Subtest::query()->firstOrCreate(
+            ['code' => 'TWK'],
+            ['name' => 'Tes Wawasan Kebangsaan', 'question_count' => 30, 'passing_grade' => 65],
+        );
+        $topic = Topic::query()->firstOrCreate(
+            ['subtest_id' => $subtest->id, 'name' => 'Pancasila'],
+        );
+
+        Question::factory()->create([
+            'subtest_id' => $subtest->id,
+            'topic_id' => $topic->id,
+            'body' => 'Soal SKD?',
+            'exam_type' => 'skd',
+        ]);
 
         $this->actingAs(User::factory()->create())
             ->get('/practice?mode=skb&formation='.$guru->id)

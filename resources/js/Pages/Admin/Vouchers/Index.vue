@@ -31,86 +31,134 @@ const formatValue = (voucher) => (voucher.type === 'percent'
 
 <template>
     <AdminLayout>
-        <Head title="Voucher" />
-        <h1 class="text-2xl font-bold">Voucher</h1>
+        <Head title="Voucher & Promo" />
 
-        <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <div class="overflow-x-auto rounded-2xl border border-line bg-white shadow-card">
-                <table class="w-full text-sm">
-                    <thead class="text-left text-xs text-ink-400">
-                        <tr>
-                            <th class="p-3">Kode</th>
-                            <th class="p-3">Potongan</th>
-                            <th class="p-3">Pemakaian</th>
-                            <th class="p-3">Berlaku s.d.</th>
-                            <th class="p-3">Status</th>
-                            <th class="p-3 text-right">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="voucher in vouchers" :key="voucher.id" class="h-12 border-t border-line">
-                            <td class="p-3 font-semibold">{{ voucher.code }}</td>
-                            <td class="p-3 tabular-nums">{{ formatValue(voucher) }}</td>
-                            <td class="p-3 tabular-nums">
-                                {{ voucher.used_count }}{{ voucher.max_uses ? ` / ${voucher.max_uses}` : '' }}
-                            </td>
-                            <td class="p-3">{{ voucher.expires_at ?? 'Tanpa batas' }}</td>
-                            <td class="p-3">
-                                <span :class="['rounded-full px-2 py-1 text-xs font-semibold', voucher.is_active ? 'bg-success/10 text-success' : 'bg-ink-400/10 text-ink-600']">
-                                    {{ voucher.is_active ? 'Aktif' : 'Nonaktif' }}
-                                </span>
-                            </td>
-                            <td class="p-3 text-right">
-                                <button class="font-semibold text-ink-600" @click="toggle(voucher)">
-                                    {{ voucher.is_active ? 'Nonaktifkan' : 'Aktifkan' }}
-                                </button>
-                            </td>
-                        </tr>
-                        <tr v-if="vouchers.length === 0">
-                            <td colspan="6" class="p-8 text-center text-ink-600">Belum ada voucher.</td>
-                        </tr>
-                    </tbody>
-                </table>
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-ink-900">Voucher &amp; Kupon Diskon</h1>
+            <p class="mt-1 text-sm text-ink-600">Kelola kode promosi paket tryout untuk peserta ujian.</p>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <!-- Table of Vouchers (Left) -->
+            <div class="overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="border-b border-line bg-surface-raised font-semibold text-ink-400">
+                            <tr>
+                                <th class="py-3.5 px-4">Kode Kupon</th>
+                                <th class="py-3.5 px-4">Potongan Nilai</th>
+                                <th class="py-3.5 px-4">Penggunaan</th>
+                                <th class="py-3.5 px-4">Masa Berlaku</th>
+                                <th class="py-3.5 px-4 w-24">Status</th>
+                                <th class="py-3.5 px-4 text-right w-28">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-line/60">
+                            <tr v-for="voucher in vouchers" :key="voucher.id" class="transition-colors hover:bg-surface-raised">
+                                <td class="py-3.5 px-4 font-mono font-bold text-ink-900 tracking-wider uppercase">{{ voucher.code }}</td>
+                                <td class="py-3.5 px-4 font-extrabold text-brand-600 tabular-nums">{{ formatValue(voucher) }}</td>
+                                <td class="py-3.5 px-4 tabular-nums text-ink-600">
+                                    {{ voucher.used_count }}{{ voucher.max_uses ? ` / ${voucher.max_uses}` : ' kali' }}
+                                </td>
+                                <td class="py-3.5 px-4 text-ink-600">{{ voucher.expires_at ?? 'Tanpa batas waktu' }}</td>
+                                <td class="py-3.5 px-4">
+                                    <span :class="['rounded-full px-2 py-0.5 text-[10px] font-bold', voucher.is_active ? 'bg-success/10 text-success' : 'bg-slate-100 text-slate-600']">
+                                        {{ voucher.is_active ? 'Aktif' : 'Nonaktif' }}
+                                    </span>
+                                </td>
+                                <td class="py-3.5 px-4 text-right">
+                                    <button
+                                        :class="['rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors', voucher.is_active ? 'text-danger hover:bg-danger/10' : 'text-success hover:bg-success/10']"
+                                        @click="toggle(voucher)"
+                                    >
+                                        {{ voucher.is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr v-if="vouchers.length === 0">
+                                <td colspan="6" class="p-8 text-center text-xs text-ink-400">
+                                    Belum ada voucher aktif. Tambahkan melalui formulir di samping.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <form class="space-y-3 rounded-2xl border border-line bg-white p-6 shadow-card" @submit.prevent="submit">
-                <p class="text-sm font-bold">Voucher baru</p>
-                <input v-model="form.code" placeholder="Kode, mis. HEMAT20" aria-label="Kode voucher" class="h-11 w-full rounded-xl border border-line px-4 uppercase focus:border-brand-600 focus:outline-none">
-                <p v-if="form.errors.code" class="text-xs text-danger">{{ form.errors.code }}</p>
-                <div class="flex gap-3">
-                    <label class="flex-1 text-xs text-ink-600">
-                        Jenis
-                        <select v-model="form.type" class="mt-1 h-11 w-full rounded-xl border border-line px-3 focus:border-brand-600 focus:outline-none">
-                            <option value="percent">Persen (%)</option>
-                            <option value="fixed">Nominal (Rp)</option>
-                        </select>
+            <!-- Create Voucher Form (Right) -->
+            <aside class="self-start">
+                <form class="rounded-2xl border border-line bg-surface p-5 shadow-card space-y-4" @submit.prevent="submit">
+                    <div>
+                        <h2 class="text-sm font-bold text-ink-900">Buat Voucher Baru</h2>
+                        <p class="text-xs text-ink-400">Tentukan kode unik dan besaran potongan</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-ink-900 mb-1" for="v-code">Kode Voucher</label>
+                        <input
+                            id="v-code"
+                            v-model="form.code"
+                            placeholder="Contoh: CPNS2026"
+                            class="h-10 w-full rounded-xl border border-line bg-surface px-3 text-xs font-mono font-bold uppercase tracking-wider text-ink-900 placeholder:font-sans placeholder:normal-case placeholder:text-ink-400 focus:border-brand-600 focus:outline-none"
+                        >
+                        <p v-if="form.errors.code" class="mt-1 text-xs text-danger">{{ form.errors.code }}</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-ink-900 mb-1">Tipe Diskon</label>
+                            <select v-model="form.type" class="h-10 w-full rounded-xl border border-line bg-surface px-3 text-xs text-ink-900 focus:border-brand-600 focus:outline-none">
+                                <option value="percent">Persen (%)</option>
+                                <option value="fixed">Nominal (Rp)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-ink-900 mb-1">Nilai Potongan</label>
+                            <input
+                                v-model.number="form.value"
+                                type="number"
+                                min="1"
+                                class="h-10 w-full rounded-xl border border-line bg-surface px-3 text-xs text-ink-900 focus:border-brand-600 focus:outline-none"
+                            >
+                        </div>
+                    </div>
+                    <p v-if="form.errors.value" class="text-xs text-danger">{{ form.errors.value }}</p>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-ink-900 mb-1">Batas Pakai</label>
+                            <input
+                                v-model.number="form.max_uses"
+                                type="number"
+                                min="1"
+                                placeholder="Kosong = &infin;"
+                                class="h-10 w-full rounded-xl border border-line bg-surface px-3 text-xs text-ink-900 focus:border-brand-600 focus:outline-none"
+                            >
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-ink-900 mb-1">Kedaluwarsa</label>
+                            <input
+                                v-model="form.expires_at"
+                                type="date"
+                                class="h-10 w-full rounded-xl border border-line bg-surface px-3 text-xs text-ink-900 focus:border-brand-600 focus:outline-none"
+                            >
+                        </div>
+                    </div>
+
+                    <label class="flex items-center gap-2 text-xs font-medium text-ink-700 cursor-pointer pt-1">
+                        <input v-model="form.is_active" type="checkbox" class="h-4 w-4 rounded border-line text-brand-600 focus:ring-brand-600/30">
+                        <span>Langsung aktifkan kupon</span>
                     </label>
-                    <label class="flex-1 text-xs text-ink-600">
-                        Nilai
-                        <input v-model.number="form.value" type="number" min="1" class="mt-1 h-11 w-full rounded-xl border border-line px-3 tabular-nums focus:border-brand-600 focus:outline-none">
-                    </label>
-                </div>
-                <p v-if="form.errors.value" class="text-xs text-danger">{{ form.errors.value }}</p>
-                <div class="flex gap-3">
-                    <label class="flex-1 text-xs text-ink-600">
-                        Maks. pemakaian
-                        <input v-model.number="form.max_uses" type="number" min="1" placeholder="Tanpa batas" class="mt-1 h-11 w-full rounded-xl border border-line px-3 tabular-nums focus:border-brand-600 focus:outline-none">
-                    </label>
-                    <label class="flex-1 text-xs text-ink-600">
-                        Kedaluwarsa
-                        <input v-model="form.expires_at" type="date" class="mt-1 h-11 w-full rounded-xl border border-line px-3 focus:border-brand-600 focus:outline-none">
-                    </label>
-                </div>
-                <p v-if="form.errors.max_uses" class="text-xs text-danger">{{ form.errors.max_uses }}</p>
-                <p v-if="form.errors.expires_at" class="text-xs text-danger">{{ form.errors.expires_at }}</p>
-                <label class="flex items-center gap-2 text-sm">
-                    <input v-model="form.is_active" type="checkbox" class="h-4 w-4 rounded border-line">
-                    Langsung aktif
-                </label>
-                <button type="submit" class="h-11 w-full rounded-xl bg-brand-600 font-semibold text-white hover:bg-brand-700 disabled:opacity-50" :disabled="form.processing">
-                    Simpan voucher
-                </button>
-            </form>
+
+                    <button
+                        type="submit"
+                        class="w-full h-10 rounded-xl bg-brand-600 text-xs font-semibold text-white shadow-sm hover:bg-brand-700 active:scale-[0.98] transition-all disabled:opacity-50"
+                        :disabled="form.processing"
+                    >
+                        {{ form.processing ? 'Menyimpan…' : 'Simpan Voucher' }}
+                    </button>
+                </form>
+            </aside>
         </div>
     </AdminLayout>
 </template>

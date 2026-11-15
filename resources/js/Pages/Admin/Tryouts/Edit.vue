@@ -227,7 +227,11 @@ const archive = () => {
                             <button class="text-xs text-ink-600 hover:text-brand-600 disabled:opacity-30" :disabled="index === 0" :aria-label="`Naikkan soal ${index + 1}`" @click="move(index, -1)">↑</button>
                             <button class="text-xs text-ink-600 hover:text-brand-600 disabled:opacity-30" :disabled="index === chosen.length - 1" :aria-label="`Turunkan soal ${index + 1}`" @click="move(index, 1)">↓</button>
                         </div>
-                        <button class="shrink-0 text-xs font-semibold text-danger" :aria-label="`Hapus soal ${index + 1}`" @click="remove(question.id)">✕</button>
+                        <button class="shrink-0 rounded p-1 text-ink-400 hover:text-danger hover:bg-danger/10 transition-colors" :aria-label="`Hapus soal ${index + 1}`" @click="remove(question.id)">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </li>
                     <li v-if="chosen.length === 0" class="p-6 text-center text-sm text-ink-600">
                         Belum ada soal. Pilih dari bank di kiri.

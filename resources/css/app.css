@@ -11,11 +11,13 @@
     --color-brand-600: #1d6ff2;
     --color-brand-700: #1458c9;
 
-    --color-page: #eaf3ff;
-    --color-ink-900: #0b1b3f;
+    --color-page: #f0f4fa;
+    --color-surface: #ffffff;
+    --color-surface-raised: #f8fafd;
+    --color-ink-900: #0f1d3d;
     --color-ink-600: #4b5b7a;
     --color-ink-400: #8a97b0;
-    --color-line: #dde7f5;
+    --color-line: #e2e9f3;
 
     --color-success: #22a559;
     --color-warning: #f59e0b;
@@ -28,7 +30,8 @@
     --color-tkp-bg: #e1f8e5;
     --color-tkp: #22a559;
 
-    --shadow-card: 0 8px 24px -12px rgb(29 111 242 / 0.18);
+    --shadow-card: 0 1px 3px 0 rgb(15 29 61 / 0.06), 0 1px 2px -1px rgb(15 29 61 / 0.06);
+    --shadow-card-hover: 0 8px 24px -8px rgb(29 111 242 / 0.18);
 }
 
 @layer base {

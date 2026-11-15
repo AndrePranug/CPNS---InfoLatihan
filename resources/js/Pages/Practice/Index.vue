@@ -94,13 +94,19 @@ const restart = () => {
 
 const optionClass = (option) => {
     if (!result.value) {
-        return chosen.value === option.id ? 'border-brand-600 bg-brand-50' : 'border-line bg-white hover:bg-brand-50';
+        return chosen.value === option.id
+            ? 'border-brand-600 bg-brand-50 shadow-xs'
+            : 'border-line bg-surface hover:bg-surface-raised';
     }
 
-    if (option.id === result.value.correct_option_id) return 'border-success bg-success/10 text-success font-semibold';
-    if (option.id === chosen.value) return 'border-danger bg-danger/10 text-danger';
+    if (option.id === result.value.correct_option_id) {
+        return 'border-success bg-success/10 text-success font-semibold shadow-xs';
+    }
+    if (option.id === chosen.value) {
+        return 'border-danger bg-danger/10 text-danger font-medium';
+    }
 
-    return 'border-line bg-white opacity-70';
+    return 'border-line bg-surface-raised opacity-60';
 };
 
 watch(filterSubtest, () => {
@@ -116,103 +122,169 @@ watch(filterMode, () => {
 
 <template>
     <AppLayout>
-        <Head title="Latihan" />
-        <div class="flex flex-wrap items-end justify-between gap-3">
+        <Head title="Latihan Soal" />
+
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
             <div>
-                <h1 class="text-3xl font-bold">Latihan</h1>
-                <p class="mt-1 text-sm text-ink-600">Tanpa timer. Pilih jawaban, langsung lihat kunci dan pembahasan.</p>
+                <h1 class="text-2xl font-bold tracking-tight text-ink-900">Latihan Soal Mandiri</h1>
+                <p class="mt-1 text-sm text-ink-600">Latihan santai tanpa batas timer. Jawaban benar dan pembahasan langsung tampil seketika.</p>
             </div>
-            <p class="text-sm text-ink-600 tabular-nums">
-                Benar <span class="font-bold text-success">{{ stats.benar }}</span> ·
-                Salah <span class="font-bold text-danger">{{ stats.salah }}</span>
-            </p>
+            
+            <!-- Live Score Ticker -->
+            <div class="flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-2 text-xs shadow-card self-start sm:self-auto">
+                <span class="flex items-center gap-1.5 font-semibold text-ink-600">
+                    <span class="h-2 w-2 rounded-full bg-success"></span> Benar: <strong class="text-success tabular-nums text-sm">{{ stats.benar }}</strong>
+                </span>
+                <span class="h-3 w-px bg-line"></span>
+                <span class="flex items-center gap-1.5 font-semibold text-ink-600">
+                    <span class="h-2 w-2 rounded-full bg-danger"></span> Salah: <strong class="text-danger tabular-nums text-sm">{{ stats.salah }}</strong>
+                </span>
+            </div>
         </div>
 
-        <form class="mt-5 flex flex-wrap items-end gap-2 rounded-2xl border border-line bg-white p-4 shadow-card" @submit.prevent="applyFilter">
-            <label class="text-sm">
-                <span class="mb-1 block font-medium">Jenis</span>
-                <select v-model="filterMode" class="h-10 rounded-xl border border-line px-3">
-                    <option value="skd">SKD</option>
-                    <option value="skb">SKB per formasi</option>
+        <!-- Filter Controls -->
+        <form class="mt-6 flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-surface p-4 sm:p-5 shadow-card" @submit.prevent="applyFilter">
+            <div class="space-y-1">
+                <label class="block text-xs font-semibold text-ink-600">Jenis Soal</label>
+                <select v-model="filterMode" class="h-10 rounded-xl border border-line bg-surface px-3 text-xs font-medium text-ink-900 outline-none focus:border-brand-600">
+                    <option value="skd">SKD (Umum)</option>
+                    <option value="skb">SKB (per Formasi)</option>
                 </select>
-            </label>
+            </div>
+
             <template v-if="filterMode === 'skd'">
-                <label class="text-sm">
-                    <span class="mb-1 block font-medium">Subtes</span>
-                    <select v-model="filterSubtest" class="h-10 rounded-xl border border-line px-3">
-                        <option value="">Semua</option>
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-ink-600">Subtes</label>
+                    <select v-model="filterSubtest" class="h-10 rounded-xl border border-line bg-surface px-3 text-xs font-medium text-ink-900 outline-none focus:border-brand-600">
+                        <option value="">Semua Subtes</option>
                         <option v-for="subtest in subtests" :key="subtest.code" :value="subtest.code">{{ subtest.code }} — {{ subtest.name }}</option>
                     </select>
-                </label>
-                <label class="text-sm">
-                    <span class="mb-1 block font-medium">Topik</span>
-                    <select v-model="filterTopic" class="h-10 rounded-xl border border-line px-3">
-                        <option value="">Semua</option>
+                </div>
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold text-ink-600">Topik Materi</label>
+                    <select v-model="filterTopic" class="h-10 rounded-xl border border-line bg-surface px-3 text-xs font-medium text-ink-900 outline-none focus:border-brand-600">
+                        <option value="">Semua Topik</option>
                         <option v-for="topic in visibleTopics" :key="topic.id" :value="topic.id">{{ topic.subtest }} · {{ topic.name }}</option>
                     </select>
-                </label>
+                </div>
             </template>
-            <label v-else class="text-sm">
-                <span class="mb-1 block font-medium">Formasi</span>
-                <select v-model="filterFormation" class="h-10 rounded-xl border border-line px-3">
-                    <option value="">Semua formasi</option>
-                    <option v-for="formation in formations" :key="formation.id" :value="formation.id">{{ formation.name }} ({{ formation.question_count }})</option>
+            <div v-else class="space-y-1">
+                <label class="block text-xs font-semibold text-ink-600">Formasi Jabatan</label>
+                <select v-model="filterFormation" class="h-10 rounded-xl border border-line bg-surface px-3 text-xs font-medium text-ink-900 outline-none focus:border-brand-600">
+                    <option value="">Semua Formasi</option>
+                    <option v-for="formation in formations" :key="formation.id" :value="formation.id">{{ formation.name }} ({{ formation.question_count }} Soal)</option>
                 </select>
-            </label>
-            <button type="submit" class="h-10 rounded-xl bg-brand-600 px-4 font-semibold text-white hover:bg-brand-700">Terapkan</button>
-            <Link href="/practice" class="h-10 rounded-xl border border-line px-4 py-2 text-sm font-semibold hover:bg-brand-50">Reset</Link>
+            </div>
+
+            <div class="flex items-center gap-2 mt-2 sm:mt-0">
+                <button type="submit" class="h-10 rounded-xl bg-brand-600 px-4 text-xs font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors">
+                    Terapkan Filter
+                </button>
+                <Link href="/practice" class="h-10 inline-flex items-center justify-center rounded-xl border border-line px-3 text-xs font-semibold text-ink-600 hover:bg-brand-50 transition-colors">
+                    Reset
+                </Link>
+            </div>
         </form>
 
-        <p v-if="questions.length === 0" class="mt-6 rounded-2xl border border-line bg-white p-6 text-sm text-ink-600">
-            Belum ada soal {{ filterMode === 'skb' ? 'SKB' : 'SKD' }} untuk filter ini.
-        </p>
+        <!-- No Questions Found -->
+        <div v-if="questions.length === 0" class="mt-6 rounded-2xl border border-line bg-surface p-12 text-center text-xs text-ink-600 shadow-card">
+            Belum ada butir soal {{ filterMode === 'skb' ? 'SKB' : 'SKD' }} yang cocok dengan filter yang dipilih. Silakan pilih subtes atau topik lain.
+        </div>
 
-        <section v-else-if="!finished" class="mt-6 rounded-2xl border border-line bg-white p-6 shadow-card">
-            <p class="text-xs text-ink-400">
-                Soal {{ index + 1 }} dari {{ questions.length }} · {{ current.label }}
-                <span v-if="current.topic"> · {{ current.topic }}</span>
-            </p>
-            <div class="rich-text mt-2 text-lg font-semibold leading-relaxed" v-html="current.body"></div>
-            <img v-if="current.image_path" :src="current.image_path" alt="Gambar soal" class="mt-4 max-h-72 rounded-xl border border-line">
+        <!-- Question View (Not Finished) -->
+        <section v-else-if="!finished" class="mt-6 rounded-2xl border border-line bg-surface p-6 sm:p-8 shadow-card space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-line/60 pb-4">
+                <div class="flex items-center gap-2">
+                    <span class="rounded-lg bg-brand-50 px-2.5 py-1 text-xs font-bold text-brand-600">
+                        Soal {{ index + 1 }} dari {{ questions.length }}
+                    </span>
+                    <span class="rounded-lg bg-surface-raised px-2.5 py-1 text-xs font-semibold text-ink-600">
+                        {{ current.label }}
+                    </span>
+                </div>
+                <span v-if="current.topic" class="text-xs text-ink-400 font-medium">
+                    Topik: {{ current.topic }}
+                </span>
+            </div>
 
-            <ul class="mt-6 space-y-3" role="radiogroup" :aria-label="`Pilihan jawaban soal ${index + 1}`">
+            <!-- Body -->
+            <div class="rich-text text-[16px] leading-relaxed text-ink-900 font-medium" v-html="current.body"></div>
+
+            <!-- Image (if any) -->
+            <img v-if="current.image_path" :src="current.image_path" alt="Gambar Soal" class="max-h-72 rounded-xl border border-line bg-surface-raised p-2">
+
+            <!-- Options -->
+            <ul class="space-y-2.5" role="radiogroup" :aria-label="`Pilihan jawaban nomor ${index + 1}`">
                 <li v-for="(option, i) in current.options" :key="option.id">
                     <button
                         type="button"
                         role="radio"
                         :aria-checked="chosen === option.id"
                         :disabled="Boolean(result) || checking"
-                        :class="['flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-colors duration-150 disabled:cursor-default', optionClass(option)]"
+                        :class="['flex w-full items-center gap-3.5 rounded-xl border p-4 text-left transition-all duration-150', optionClass(option)]"
                         @click="pick(option.id)"
                     >
-                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-current font-bold">{{ letters[i] }}</span>
-                        <span class="text-[15px]">{{ option.body }}</span>
+                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-current text-xs font-bold">
+                            {{ letters[i] }}
+                        </span>
+                        <span class="text-sm leading-relaxed flex-1">{{ option.body }}</span>
                     </button>
                 </li>
             </ul>
 
-            <div v-if="result" role="status" class="mt-5 rounded-xl p-4 text-sm" :class="result.is_correct ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'">
-                <p class="font-bold">{{ result.is_correct ? 'Benar' : 'Belum tepat' }}</p>
-                <div v-if="result.explanation" class="rich-text mt-1 text-ink-600" v-html="result.explanation"></div>
+            <!-- Instant Validation Banner -->
+            <div
+                v-if="result"
+                role="status"
+                :class="[
+                    'rounded-2xl border p-5 transition-all text-xs space-y-2',
+                    result.is_correct ? 'border-success/30 bg-success/10 text-success' : 'border-danger/30 bg-danger/10 text-danger'
+                ]"
+            >
+                <div class="flex items-center gap-2 font-bold text-sm">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-current text-white text-xs">
+                        <svg v-if="result.is_correct" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                        </svg>
+                        <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </span>
+                    <span>{{ result.is_correct ? 'Jawaban Anda Benar!' : 'Jawaban Belum Tepat' }}</span>
+                </div>
+                <div v-if="result.explanation" class="rich-text text-ink-900 leading-relaxed border-t border-current/20 pt-2" v-html="result.explanation"></div>
             </div>
 
-            <div class="mt-6 flex gap-3">
+            <!-- Next button -->
+            <div class="flex justify-end pt-2">
                 <button
-                    class="h-11 rounded-xl bg-brand-600 px-5 font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                    class="h-11 rounded-xl bg-brand-600 px-6 text-xs font-semibold text-white shadow-sm hover:bg-brand-700 active:scale-[0.98] transition-all disabled:opacity-40 disabled:pointer-events-none"
                     :disabled="!result"
                     @click="next"
                 >
-                    Soal berikutnya
+                    Lanjut ke Soal Berikutnya &rarr;
                 </button>
             </div>
         </section>
 
-        <section v-else class="mt-6 rounded-2xl border border-line bg-white p-8 text-center shadow-card">
-            <h2 class="text-2xl font-bold">Sesi selesai</h2>
-            <p class="mt-2 text-sm text-ink-600">Benar {{ stats.benar }} dari {{ questions.length }} soal.</p>
-            <div class="mt-6 flex flex-wrap justify-center gap-3">
-                <button class="h-11 rounded-xl bg-brand-600 px-5 font-semibold text-white hover:bg-brand-700" @click="restart">Soal baru</button>
-                <Link href="/tryouts" class="inline-flex h-11 items-center rounded-xl border border-line px-5 font-semibold">Coba tryout penuh</Link>
+        <!-- Session Finished View -->
+        <section v-else class="mt-6 rounded-3xl border border-line bg-surface p-10 text-center shadow-card space-y-4">
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-success/10 text-success">
+                <svg viewBox="0 0 24 24" fill="none" class="h-8 w-8" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+                </svg>
+            </div>
+            <h2 class="text-2xl font-bold text-ink-900">Sesi Latihan Selesai!</h2>
+            <p class="text-sm text-ink-600">
+                Anda telah menjawab <strong class="text-success">{{ stats.benar }} benar</strong> dan <strong class="text-danger">{{ stats.salah }} salah</strong> dari total {{ questions.length }} butir soal.
+            </p>
+            <div class="pt-4 flex flex-wrap justify-center gap-3">
+                <button class="h-11 rounded-xl bg-brand-600 px-6 text-xs font-semibold text-white shadow-sm hover:bg-brand-700 transition-colors" @click="restart">
+                    Latihan Soal Baru
+                </button>
+                <Link href="/tryouts" class="inline-flex h-11 items-center justify-center rounded-xl border border-line bg-surface px-6 text-xs font-semibold text-ink-900 hover:bg-brand-50 transition-colors">
+                    Coba Tryout Penuh
+                </Link>
             </div>
         </section>
     </AppLayout>
